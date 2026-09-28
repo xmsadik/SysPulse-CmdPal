@@ -36,13 +36,13 @@ Kaynak: `SysPulse-CmdPal-Dock-Extension-Spec.md` (tek doğruluk kaynağı; SDK i
 - [x] A5. Dev loop scripti `scripts/deploy.ps1`: çalışan SysPulse sürecini durdur → `dotnet build -p:Platform=x64` → `Add-AppxPackage -Register <out>\AppxManifest.xml` → CmdPal "Reload extensions". Extension'ın yüklendiğini doğrula → commit
 
 ### Faz B — Sistem örnekleme & canlı band
-- [ ] B1. `SystemSampler` (`GetSystemTimes` delta, `GlobalMemoryStatusEx`) + testler
+- [x] B1. `SystemSampler` (`GetSystemTimes` delta, `GlobalMemoryStatusEx`) + testler
 - [ ] B2. `StatusDockItem` + `WrappedDockItem` ile `CPU x% · MEM y%` canlı band (Id'ler non-empty); Dock'a pinle, gözle doğrula → commit
 
 ### Faz C — Opsiyonlar, durum makinesi & alarm görseli
-- [ ] C0. `SysPulseOptions` POCO (13 anahtar, clamp, `RetryInterval < ScanInterval`) + test 9  ← ayarları tüketen fazlardan önce
-- [ ] C1. `Models.cs` (`SystemSnapshot`, `ProcessSample`, `HealthState`, `BreachKind`)
-- [ ] C2. `HealthMonitor` (NORMAL/VERIFYING/ALERT, retry cadence, hysteresis, BreachKind, overlap guard) + test 1–5 + VERIFYING sırasında ayar değişimi testi
+- [x] C0. `SysPulseOptions` POCO (13 anahtar, clamp, `RetryInterval < ScanInterval`) + test 9  ← ayarları tüketen fazlardan önce
+- [x] C1. `Models.cs` (`SystemSnapshot`, `ProcessSample`, `HealthState`, `BreachKind`)
+- [x] C2. `HealthMonitor` (NORMAL/VERIFYING/ALERT, retry cadence, hysteresis, BreachKind, overlap guard) + test 1–5 + VERIFYING sırasında ayar değişimi testi
 - [ ] C3. ALERT görselleri: `warning-yellow.svg/png` (#FFC400), `⚠` başlık, subtitle; VERIFYING'de UI değişmez → görsel doğrulama → commit
 
 ### Faz D — Süreçler & Top-5
