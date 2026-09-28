@@ -29,7 +29,7 @@ Kaynak: `SysPulse-CmdPal-Dock-Extension-Spec.md` (tek doğruluk kaynağı; SDK i
 ## 2. Adımlar (her adım: build → deploy → CmdPal reload → doğrula → commit)
 
 ### Faz A — Araştırma & iskelet
-- [ ] A1. (Sonnet, read-only) PowerToys repo + yüklü NuGet: `NowDockBand`, Performance Monitor band, `WrappedDockItem`, `ICommandProvider3/4`, `JsonSettingsManager` + setting türleri, `CommandResult.Confirm`, `ToastStatusMessage`, `IconInfo(exePath)`, resx/resw → bulgular doğrudan `DECISIONS.md`'ye
+- [x] A1. (Sonnet, read-only) PowerToys repo + yüklü NuGet: `NowDockBand`, Performance Monitor band, `WrappedDockItem`, `ICommandProvider3/4`, `JsonSettingsManager` + setting türleri, `CommandResult.Confirm`, `ToastStatusMessage`, `IconInfo(exePath)`, resx/resw → bulgular doğrudan `DECISIONS.md`'ye
 - [x] A2. `git init` + `.gitignore` + boş `DECISIONS.md`
 - [x] A3. **👤 Kullanıcı adımı:** CmdPal'de **"Create extension"** → `SysPulse` (bu klasöre). SDK sürümünü doğrula (≥ 0.9.260303001; muhtemelen zaten öyle)
 - [x] A4. `SysPulse.Core` + `SysPulse.Tests` ekle, solution'a bağla
