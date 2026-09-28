@@ -12,6 +12,7 @@ using SysPulse.Commands;
 using SysPulse.Core.Formatting;
 using SysPulse.Core.Processes;
 using SysPulse.Core.Settings;
+using SysPulse.Properties;
 
 namespace SysPulse.Pages;
 
@@ -60,7 +61,7 @@ internal sealed partial class ProcessListItem : ListItem
         ArgumentNullException.ThrowIfNull(sharedTrailingItems);
 
         _killCommand = new KillProcessCommand(optionsAccessor, requestRefresh);
-        _copyPidCommand = new CopyTextCommand(string.Empty) { Name = "Copy PID" };
+        _copyPidCommand = new CopyTextCommand(string.Empty) { Name = Resources.Command_CopyPid };
         _copyPidContextItem = new CommandContextItem(_copyPidCommand);
         _sharedTrailingItems = sharedTrailingItems;
 
@@ -175,7 +176,7 @@ internal sealed partial class ProcessListItem : ListItem
     {
         // ShowFileInFolderCommand has no mutable path property (docs/sdk-research.md §5), so it is
         // only reallocated when the slot's process identity -- and therefore its path -- changes.
-        _openFileCommand = string.IsNullOrEmpty(exePath) ? null : new ShowFileInFolderCommand(exePath) { Name = "Open file location" };
+        _openFileCommand = string.IsNullOrEmpty(exePath) ? null : new ShowFileInFolderCommand(exePath) { Name = Resources.Command_OpenFileLocation };
         _openFileContextItem = _openFileCommand is null ? null : new CommandContextItem(_openFileCommand);
     }
 

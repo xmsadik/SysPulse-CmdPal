@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using SysPulse.Core.Settings;
+using SysPulse.Properties;
 
 namespace SysPulse.Settings;
 
@@ -62,80 +63,80 @@ public sealed class SysPulseSettingsManager : JsonSettingsManager
 
         _scanIntervalSeconds = new TextSetting(
             nameof(SysPulseOptions.ScanIntervalSeconds),
-            "Scan interval (seconds, 2–300)",
-            "How often SysPulse samples CPU and memory while healthy.",
+            Resources.Settings_ScanIntervalSeconds_Label,
+            Resources.Settings_ScanIntervalSeconds_Description,
             Inv(Defaults.ScanIntervalSeconds));
 
         _retryIntervalSeconds = new TextSetting(
             nameof(SysPulseOptions.RetryIntervalSeconds),
-            "Retry interval (seconds, 1–60)",
-            "How often SysPulse re-checks a suspected breach. Must be less than the scan interval.",
+            Resources.Settings_RetryIntervalSeconds_Label,
+            Resources.Settings_RetryIntervalSeconds_Description,
             Inv(Defaults.RetryIntervalSeconds));
 
         _retryCount = new TextSetting(
             nameof(SysPulseOptions.RetryCount),
-            "Retry count (1–10)",
-            "Number of consecutive retries that must all breach before SysPulse alerts.",
+            Resources.Settings_RetryCount_Label,
+            Resources.Settings_RetryCount_Description,
             Inv(Defaults.RetryCount));
 
         _cpuMonitoringEnabled = new ToggleSetting(
             nameof(SysPulseOptions.CpuMonitoringEnabled),
-            "Monitor CPU",
-            "Whether CPU usage counts toward a breach.",
+            Resources.Settings_CpuMonitoringEnabled_Label,
+            Resources.Settings_CpuMonitoringEnabled_Description,
             Defaults.CpuMonitoringEnabled);
 
         _cpuThreshold = new TextSetting(
             nameof(SysPulseOptions.CpuThreshold),
-            "CPU threshold (%, 10–100)",
-            "CPU percent at or above which a breach is considered.",
+            Resources.Settings_CpuThreshold_Label,
+            Resources.Settings_CpuThreshold_Description,
             Inv(Defaults.CpuThreshold));
 
         _memoryMonitoringEnabled = new ToggleSetting(
             nameof(SysPulseOptions.MemoryMonitoringEnabled),
-            "Monitor memory",
-            "Whether memory usage counts toward a breach.",
+            Resources.Settings_MemoryMonitoringEnabled_Label,
+            Resources.Settings_MemoryMonitoringEnabled_Description,
             Defaults.MemoryMonitoringEnabled);
 
         _memoryThreshold = new TextSetting(
             nameof(SysPulseOptions.MemoryThreshold),
-            "Memory threshold (%, 10–100)",
-            "Memory percent at or above which a breach is considered.",
+            Resources.Settings_MemoryThreshold_Label,
+            Resources.Settings_MemoryThreshold_Description,
             Inv(Defaults.MemoryThreshold));
 
         _hysteresisPercent = new TextSetting(
             nameof(SysPulseOptions.HysteresisPercent),
-            "Hysteresis (%, 0–20)",
-            "Margin below a threshold a metric must drop to before SysPulse leaves the alert state.",
+            Resources.Settings_HysteresisPercent_Label,
+            Resources.Settings_HysteresisPercent_Description,
             Inv(Defaults.HysteresisPercent));
 
         _showToast = new ToggleSetting(
             nameof(SysPulseOptions.ShowToast),
-            "Show a toast on alert",
-            "Show a Windows notification the first time an alert episode begins.",
+            Resources.Settings_ShowToast_Label,
+            Resources.Settings_ShowToast_Description,
             Defaults.ShowToast);
 
         _confirmKill = new ToggleSetting(
             nameof(SysPulseOptions.ConfirmKill),
-            "Confirm before killing",
-            "Ask for confirmation before killing a process.",
+            Resources.Settings_ConfirmKill_Label,
+            Resources.Settings_ConfirmKill_Description,
             Defaults.ConfirmKill);
 
         _killProcessTree = new ToggleSetting(
             nameof(SysPulseOptions.KillProcessTree),
-            "Kill process tree",
-            "Also kill descendant processes when killing a process.",
+            Resources.Settings_KillProcessTree_Label,
+            Resources.Settings_KillProcessTree_Description,
             Defaults.KillProcessTree);
 
         _compactLabel = new ToggleSetting(
             nameof(SysPulseOptions.CompactLabel),
-            "Compact dock label",
-            "Use a single-line \"30% | 50%\" dock label instead of the two-line \"CPU 30%\" / \"MEM 50%\" label.",
+            Resources.Settings_CompactLabel_Label,
+            Resources.Settings_CompactLabel_Description,
             Defaults.CompactLabel);
 
         _protectedProcesses = new TextSetting(
             nameof(SysPulseOptions.ProtectedProcesses),
-            "Never offer Kill for these processes",
-            "Extra process names, comma-separated, case-insensitive, \".exe\" optional.",
+            Resources.Settings_ProtectedProcesses_Label,
+            Resources.Settings_ProtectedProcesses_Description,
             Defaults.ProtectedProcesses);
 
         Settings.Add(_scanIntervalSeconds);

@@ -1,5 +1,6 @@
 using System.Globalization;
 using SysPulse.Core.Processes;
+using SysPulse.Core.Properties;
 
 namespace SysPulse.Core.Formatting;
 
@@ -21,7 +22,7 @@ public static class ProcessSubtitleFormatter
     {
         int cpuPercent = (int)Math.Round(Math.Clamp(sample.CpuPercent, 0, 100), MidpointRounding.AwayFromZero);
         string ram = ByteFormatter.Format(sample.PrivateBytes);
-        string subtitle = string.Format(CultureInfo.InvariantCulture, "CPU {0}% · RAM {1} · PID {2}", cpuPercent, ram, sample.Pid);
-        return isProtected ? subtitle + " · protected" : subtitle;
+        string subtitle = string.Format(CultureInfo.InvariantCulture, Resources.ProcessSubtitle_Format, cpuPercent, ram, sample.Pid);
+        return isProtected ? subtitle + Resources.ProcessSubtitle_ProtectedSuffix : subtitle;
     }
 }

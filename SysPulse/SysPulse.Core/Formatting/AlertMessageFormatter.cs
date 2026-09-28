@@ -1,5 +1,7 @@
+using System.Globalization;
 using SysPulse.Core.Monitoring;
 using SysPulse.Core.Processes;
+using SysPulse.Core.Properties;
 
 namespace SysPulse.Core.Formatting;
 
@@ -34,21 +36,24 @@ public static class AlertMessageFormatter
     /// <returns>The formatted, invariant-culture toast body.</returns>
     public static string BuildBody(SystemSnapshot snapshot, BreachKind breachKind, int approxDurationSeconds, ProcessSample? topProcess)
     {
+        // Resource text is looked up via CurrentUICulture (the generated Designer.cs default);
+        // every numeric substitution is formatted with InvariantCulture so digits never change
+        // shape across locales (see AlertMessageFormatterTests.BuildBody_UsesInvariantCultureRegardlessOfCurrentCulture).
         string metrics = breachKind switch
         {
-            BreachKind.Memory => FormattableString.Invariant($"Memory at {RoundPercent(snapshot.MemoryPercent)}%"),
-            BreachKind.Both => FormattableString.Invariant($"CPU {RoundPercent(snapshot.CpuPercent)}% · memory {RoundPercent(snapshot.MemoryPercent)}%"),
-            _ => FormattableString.Invariant($"CPU at {RoundPercent(snapshot.CpuPercent)}%"),
+            BreachKind.Memory => string.Format(CultureInfo.InvariantCulture, Resources.Alert_Memory, RoundPercent(snapshot.MemoryPercent)),
+            BreachKind.Both => string.Format(CultureInfo.InvariantCulture, Resources.Alert_Both, RoundPercent(snapshot.CpuPercent), RoundPercent(snapshot.MemoryPercent)),
+            _ => string.Format(CultureInfo.InvariantCulture, Resources.Alert_Cpu, RoundPercent(snapshot.CpuPercent)),
         };
 
-        string body = FormattableString.Invariant($"{metrics} for the last ~{approxDurationSeconds} s.");
+        string body = string.Format(CultureInfo.InvariantCulture, Resources.Alert_ForTheLast, metrics, approxDurationSeconds);
 
         if (topProcess is { } top)
         {
             string value = breachKind == BreachKind.Memory
                 ? ByteFormatter.Format(top.PrivateBytes)
-                : FormattableString.Invariant($"{RoundPercent(top.CpuPercent)}%");
-            body += FormattableString.Invariant($" Top: {top.Name} ({value}).");
+                : string.Format(CultureInfo.InvariantCulture, "{0}%", RoundPercent(top.CpuPercent));
+            body += string.Format(CultureInfo.InvariantCulture, Resources.Alert_TopProcess, top.Name, value);
         }
 
         return body;

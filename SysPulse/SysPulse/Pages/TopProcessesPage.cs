@@ -14,6 +14,8 @@ using SysPulse.Core.Monitoring;
 using SysPulse.Core.Processes;
 using SysPulse.Core.Settings;
 using SysPulse.Dock;
+using SysPulse.Logging;
+using SysPulse.Properties;
 
 namespace SysPulse.Pages;
 
@@ -97,13 +99,13 @@ internal sealed partial class TopProcessesPage : OnLoadDynamicListPage
         // CmdPal ignores dock band items whose Command.Id is empty (spec §3).
         Id = "com.syspulse.topprocesses";
         Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
-        Title = "Top processes";
-        Name = "Open";
+        Title = Resources.TopProcesses_Title;
+        Name = Resources.TopProcesses_OpenName;
 
         EmptyContent = new CommandItem(new NoOpCommand())
         {
-            Title = "No process data yet",
-            Subtitle = "Sampling processes…",
+            Title = Resources.TopProcesses_EmptyTitle,
+            Subtitle = Resources.TopProcesses_EmptySubtitle,
         };
 
         var refreshCommand = new RefreshProcessesCommand(() => StartRefreshIfIdle());
@@ -244,6 +246,7 @@ internal sealed partial class TopProcessesPage : OnLoadDynamicListPage
         }
         catch (Exception ex)
         {
+            Log.Warning($"Top-5 process refresh (sampling) faulted: {ex.Message}");
             Debug.WriteLine($"SysPulse: Top-5 process refresh failed: {ex}");
         }
         finally

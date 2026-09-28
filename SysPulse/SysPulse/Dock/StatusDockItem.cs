@@ -9,6 +9,7 @@ using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using SysPulse.Core.Monitoring;
 using SysPulse.Core.Settings;
+using SysPulse.Properties;
 
 namespace SysPulse.Dock;
 
@@ -28,9 +29,6 @@ namespace SysPulse.Dock;
 /// </remarks>
 public sealed partial class StatusDockItem : ListItem
 {
-    private const string InitialTitle = "CPU –%";
-    private const string InitialSubtitle = "MEM –%";
-
     private static readonly IconInfo NormalIconValue = IconHelpers.FromRelativePath("Assets\\pulse.svg");
     private static readonly IconInfo WarningIconValue = IconHelpers.FromRelativePath("Assets\\warning-yellow.svg");
 
@@ -60,8 +58,8 @@ public sealed partial class StatusDockItem : ListItem
         }
 
         Command = command;
-        Title = InitialTitle;
-        Subtitle = InitialSubtitle;
+        Title = Resources.Dock_InitialTitle;
+        Subtitle = Resources.Dock_InitialSubtitle;
         Icon = NormalIconValue;
     }
 
@@ -158,19 +156,19 @@ public sealed partial class StatusDockItem : ListItem
 
         if (opts.CompactLabel)
         {
-            return (string.Format(CultureInfo.InvariantCulture, "{0}% | {1}%", cpu, mem), reason);
+            return (string.Format(CultureInfo.InvariantCulture, Resources.Dock_CompactFormat, cpu, mem), reason);
         }
 
-        string title = string.Format(CultureInfo.InvariantCulture, "CPU {0}%", cpu);
-        string memText = string.Format(CultureInfo.InvariantCulture, "MEM {0}%", mem);
+        string title = string.Format(CultureInfo.InvariantCulture, Resources.Dock_CpuTitleFormat, cpu);
+        string memText = string.Format(CultureInfo.InvariantCulture, Resources.Dock_MemSubtitleFormat, mem);
         return (title, reason.Length == 0 ? memText : memText + " · " + reason);
     }
 
     private static string BuildAlertSubtitle(BreachKind kind) => kind switch
     {
-        BreachKind.Cpu => "High CPU",
-        BreachKind.Memory => "High memory",
-        BreachKind.Both => "High CPU & memory",
+        BreachKind.Cpu => Resources.Dock_AlertHighCpu,
+        BreachKind.Memory => Resources.Dock_AlertHighMemory,
+        BreachKind.Both => Resources.Dock_AlertHighBoth,
         _ => string.Empty,
     };
 

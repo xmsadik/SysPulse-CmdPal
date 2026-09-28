@@ -4,6 +4,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CommandPalette.Extensions;
@@ -12,8 +13,10 @@ using SysPulse.Core.Monitoring;
 using SysPulse.Core.Processes;
 using SysPulse.Core.Settings;
 using SysPulse.Dock;
+using SysPulse.Logging;
 using SysPulse.Notifications;
 using SysPulse.Pages;
+using SysPulse.Properties;
 using SysPulse.Settings;
 
 namespace SysPulse;
@@ -47,6 +50,13 @@ public partial class SysPulseCommandsProvider : CommandProvider
 
     public SysPulseCommandsProvider()
     {
+#if DEBUG
+        Log.Initialize(debugEnabled: true);
+#else
+        Log.Initialize(debugEnabled: false);
+#endif
+        Log.Info("SysPulse extension starting up.");
+
         Id = "com.syspulse.extension";
         DisplayName = "SysPulse";
         Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
@@ -89,7 +99,7 @@ public partial class SysPulseCommandsProvider : CommandProvider
         _commands = [
             new CommandItem(_topProcessesPage)
             {
-                Title = "SysPulse – Top processes",
+                Title = Resources.Provider_TopLevelTitle,
                 MoreCommands = [new CommandContextItem(_settingsManager.Settings.SettingsPage)],
             },
         ];
@@ -135,6 +145,19 @@ public partial class SysPulseCommandsProvider : CommandProvider
             _lastSnapshot = snapshot;
         }
 
+        // Alert enter/leave, with the values that drove the transition (task requirement H2).
+        // Deliberately not logged on every tick -- only on the edges -- to keep the file small.
+        if (evaluation.EnteredAlert)
+        {
+            Log.Info(FormattableString.Invariant(
+                $"Alert entered: breach={evaluation.BreachKind}, cpu={snapshot.CpuPercent:F1}%, mem={snapshot.MemoryPercent:F1}%."));
+        }
+        else if (evaluation.LeftAlert)
+        {
+            Log.Info(FormattableString.Invariant(
+                $"Alert left: cpu={snapshot.CpuPercent:F1}%, mem={snapshot.MemoryPercent:F1}%."));
+        }
+
         try
         {
             _statusItem.Apply(evaluation, snapshot, _options);
@@ -147,6 +170,7 @@ public partial class SysPulseCommandsProvider : CommandProvider
 
     private void OnFaulted(Exception ex)
     {
+        Log.Error("Monitor loop sampling cycle faulted", ex);
         Debug.WriteLine($"SysPulse: monitor loop cycle faulted: {ex}");
     }
 
@@ -168,9 +192,20 @@ public partial class SysPulseCommandsProvider : CommandProvider
             _monitorLoop.UpdateOptions(newOptions);
             RebuildProtectedProcessList();
             ReapplyStatusLabel(newOptions);
+            Log.Info(string.Format(
+                CultureInfo.InvariantCulture,
+                "Settings changed: scan={0}s, retry={1}s x{2}, cpuThreshold={3}% (enabled={4}), memThreshold={5}% (enabled={6}).",
+                newOptions.ScanIntervalSeconds,
+                newOptions.RetryIntervalSeconds,
+                newOptions.RetryCount,
+                newOptions.CpuThreshold,
+                newOptions.CpuMonitoringEnabled,
+                newOptions.MemoryThreshold,
+                newOptions.MemoryMonitoringEnabled));
         }
         catch (Exception ex)
         {
+            Log.Error("Failed to apply changed settings", ex);
             Debug.WriteLine($"SysPulse: failed to apply changed settings: {ex}");
         }
     }
@@ -212,9 +247,11 @@ public partial class SysPulseCommandsProvider : CommandProvider
         try
         {
             _monitorLoop.Start(TimeSpan.FromSeconds(1));
+            Log.Info("Monitor loop started.");
         }
         catch (Exception ex)
         {
+            Log.Error("Failed to start monitor loop", ex);
             Debug.WriteLine($"SysPulse: failed to start monitor loop: {ex}");
         }
     }
@@ -235,9 +272,11 @@ public partial class SysPulseCommandsProvider : CommandProvider
         try
         {
             await _monitorLoop.StopAsync().ConfigureAwait(false);
+            Log.Info("Monitor loop stopped.");
         }
         catch (Exception ex)
         {
+            Log.Error("Failed to stop monitor loop", ex);
             Debug.WriteLine($"SysPulse: failed to stop monitor loop: {ex}");
         }
     }

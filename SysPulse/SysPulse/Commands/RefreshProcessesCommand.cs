@@ -5,6 +5,7 @@
 using System;
 using System.Diagnostics;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using SysPulse.Properties;
 
 namespace SysPulse.Commands;
 
@@ -22,7 +23,7 @@ internal sealed partial class RefreshProcessesCommand : InvokableCommand
     {
         ArgumentNullException.ThrowIfNull(requestRefresh);
         _requestRefresh = requestRefresh;
-        Name = "Refresh";
+        Name = Resources.Command_Refresh;
         Icon = new IconInfo("\uE72C"); // Segoe Fluent "Refresh".
     }
 

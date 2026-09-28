@@ -7,6 +7,7 @@ using SysPulse.Core.Formatting;
 using SysPulse.Core.Monitoring;
 using SysPulse.Core.Processes;
 using SysPulse.Core.Settings;
+using SysPulse.Logging;
 using Windows.Data.Xml.Dom;
 using Windows.UI.Notifications;
 
@@ -161,6 +162,7 @@ public sealed partial class AlertNotifier : IAlertNotifier, IDisposable
         }
         catch (Exception ex)
         {
+            Log.Warning($"Toast display failed (identity/policy?), disabling further toasts for this session: {ex.Message}");
             Debug.WriteLine($"SysPulse: toast display failed (identity/policy?), disabling further toasts for this session: {ex}");
             _toastDisabledForSession = true;
         }

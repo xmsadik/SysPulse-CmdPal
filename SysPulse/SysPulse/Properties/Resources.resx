@@ -1,0 +1,214 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Dock_InitialTitle" xml:space="preserve">
+    <value>CPU –%</value>
+  </data>
+  <data name="Dock_InitialSubtitle" xml:space="preserve">
+    <value>MEM –%</value>
+  </data>
+  <data name="Dock_AlertHighCpu" xml:space="preserve">
+    <value>High CPU</value>
+  </data>
+  <data name="Dock_AlertHighMemory" xml:space="preserve">
+    <value>High memory</value>
+  </data>
+  <data name="Dock_AlertHighBoth" xml:space="preserve">
+    <value>High CPU &amp; memory</value>
+  </data>
+  <data name="Dock_CpuTitleFormat" xml:space="preserve">
+    <value>CPU {0}%</value>
+  </data>
+  <data name="Dock_MemSubtitleFormat" xml:space="preserve">
+    <value>MEM {0}%</value>
+  </data>
+  <data name="Dock_CompactFormat" xml:space="preserve">
+    <value>{0}% | {1}%</value>
+  </data>
+  <data name="TopProcesses_Title" xml:space="preserve">
+    <value>Top processes</value>
+  </data>
+  <data name="TopProcesses_OpenName" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="TopProcesses_EmptyTitle" xml:space="preserve">
+    <value>No process data yet</value>
+  </data>
+  <data name="TopProcesses_EmptySubtitle" xml:space="preserve">
+    <value>Sampling processes…</value>
+  </data>
+  <data name="Command_CopyPid" xml:space="preserve">
+    <value>Copy PID</value>
+  </data>
+  <data name="Command_OpenFileLocation" xml:space="preserve">
+    <value>Open file location</value>
+  </data>
+  <data name="Command_Kill" xml:space="preserve">
+    <value>Kill</value>
+  </data>
+  <data name="Command_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Kill_ConfirmTitle" xml:space="preserve">
+    <value>Kill process</value>
+  </data>
+  <data name="Kill_ConfirmDescriptionFormat" xml:space="preserve">
+    <value>Kill {0} (PID {1})?</value>
+  </data>
+  <data name="Kill_NothingToKill" xml:space="preserve">
+    <value>Nothing to kill.</value>
+  </data>
+  <data name="Kill_AlreadyExitedFormat" xml:space="preserve">
+    <value>{0}: process already exited.</value>
+  </data>
+  <data name="Kill_SuccessFormat" xml:space="preserve">
+    <value>{0} killed.</value>
+  </data>
+  <data name="Kill_AdminRequiredFormat" xml:space="preserve">
+    <value>Cannot kill {0}: it runs with administrator rights and SysPulse runs unelevated.</value>
+  </data>
+  <data name="Kill_Win32ErrorFormat" xml:space="preserve">
+    <value>Cannot kill {0}: {1}</value>
+  </data>
+  <data name="Kill_UnexpectedErrorFormat" xml:space="preserve">
+    <value>Cannot kill {0}: unexpected error.</value>
+  </data>
+  <data name="Provider_TopLevelTitle" xml:space="preserve">
+    <value>SysPulse – Top processes</value>
+  </data>
+  <data name="Settings_ScanIntervalSeconds_Label" xml:space="preserve">
+    <value>Scan interval (seconds, 2–300)</value>
+  </data>
+  <data name="Settings_ScanIntervalSeconds_Description" xml:space="preserve">
+    <value>How often SysPulse samples CPU and memory while healthy.</value>
+  </data>
+  <data name="Settings_RetryIntervalSeconds_Label" xml:space="preserve">
+    <value>Retry interval (seconds, 1–60)</value>
+  </data>
+  <data name="Settings_RetryIntervalSeconds_Description" xml:space="preserve">
+    <value>How often SysPulse re-checks a suspected breach. Must be less than the scan interval.</value>
+  </data>
+  <data name="Settings_RetryCount_Label" xml:space="preserve">
+    <value>Retry count (1–10)</value>
+  </data>
+  <data name="Settings_RetryCount_Description" xml:space="preserve">
+    <value>Number of consecutive retries that must all breach before SysPulse alerts.</value>
+  </data>
+  <data name="Settings_CpuMonitoringEnabled_Label" xml:space="preserve">
+    <value>Monitor CPU</value>
+  </data>
+  <data name="Settings_CpuMonitoringEnabled_Description" xml:space="preserve">
+    <value>Whether CPU usage counts toward a breach.</value>
+  </data>
+  <data name="Settings_CpuThreshold_Label" xml:space="preserve">
+    <value>CPU threshold (%, 10–100)</value>
+  </data>
+  <data name="Settings_CpuThreshold_Description" xml:space="preserve">
+    <value>CPU percent at or above which a breach is considered.</value>
+  </data>
+  <data name="Settings_MemoryMonitoringEnabled_Label" xml:space="preserve">
+    <value>Monitor memory</value>
+  </data>
+  <data name="Settings_MemoryMonitoringEnabled_Description" xml:space="preserve">
+    <value>Whether memory usage counts toward a breach.</value>
+  </data>
+  <data name="Settings_MemoryThreshold_Label" xml:space="preserve">
+    <value>Memory threshold (%, 10–100)</value>
+  </data>
+  <data name="Settings_MemoryThreshold_Description" xml:space="preserve">
+    <value>Memory percent at or above which a breach is considered.</value>
+  </data>
+  <data name="Settings_HysteresisPercent_Label" xml:space="preserve">
+    <value>Hysteresis (%, 0–20)</value>
+  </data>
+  <data name="Settings_HysteresisPercent_Description" xml:space="preserve">
+    <value>Margin below a threshold a metric must drop to before SysPulse leaves the alert state.</value>
+  </data>
+  <data name="Settings_ShowToast_Label" xml:space="preserve">
+    <value>Show a toast on alert</value>
+  </data>
+  <data name="Settings_ShowToast_Description" xml:space="preserve">
+    <value>Show a Windows notification the first time an alert episode begins.</value>
+  </data>
+  <data name="Settings_ConfirmKill_Label" xml:space="preserve">
+    <value>Confirm before killing</value>
+  </data>
+  <data name="Settings_ConfirmKill_Description" xml:space="preserve">
+    <value>Ask for confirmation before killing a process.</value>
+  </data>
+  <data name="Settings_KillProcessTree_Label" xml:space="preserve">
+    <value>Kill process tree</value>
+  </data>
+  <data name="Settings_KillProcessTree_Description" xml:space="preserve">
+    <value>Also kill descendant processes when killing a process.</value>
+  </data>
+  <data name="Settings_CompactLabel_Label" xml:space="preserve">
+    <value>Compact dock label</value>
+  </data>
+  <data name="Settings_CompactLabel_Description" xml:space="preserve">
+    <value>Use a single-line "30% | 50%" dock label instead of the two-line "CPU 30%" / "MEM 50%" label.</value>
+  </data>
+  <data name="Settings_ProtectedProcesses_Label" xml:space="preserve">
+    <value>Never offer Kill for these processes</value>
+  </data>
+  <data name="Settings_ProtectedProcesses_Description" xml:space="preserve">
+    <value>Extra process names, comma-separated, case-insensitive, ".exe" optional.</value>
+  </data>
+</root>

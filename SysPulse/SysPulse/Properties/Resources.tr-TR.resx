@@ -1,0 +1,214 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Dock_InitialTitle" xml:space="preserve">
+    <value>CPU –%</value>
+  </data>
+  <data name="Dock_InitialSubtitle" xml:space="preserve">
+    <value>MEM –%</value>
+  </data>
+  <data name="Dock_AlertHighCpu" xml:space="preserve">
+    <value>Yüksek CPU</value>
+  </data>
+  <data name="Dock_AlertHighMemory" xml:space="preserve">
+    <value>Yüksek bellek</value>
+  </data>
+  <data name="Dock_AlertHighBoth" xml:space="preserve">
+    <value>Yüksek CPU ve bellek</value>
+  </data>
+  <data name="Dock_CpuTitleFormat" xml:space="preserve">
+    <value>CPU {0}%</value>
+  </data>
+  <data name="Dock_MemSubtitleFormat" xml:space="preserve">
+    <value>MEM {0}%</value>
+  </data>
+  <data name="Dock_CompactFormat" xml:space="preserve">
+    <value>%{0} | %{1}</value>
+  </data>
+  <data name="TopProcesses_Title" xml:space="preserve">
+    <value>En çok kaynak kullanan işlemler</value>
+  </data>
+  <data name="TopProcesses_OpenName" xml:space="preserve">
+    <value>Aç</value>
+  </data>
+  <data name="TopProcesses_EmptyTitle" xml:space="preserve">
+    <value>Henüz işlem verisi yok</value>
+  </data>
+  <data name="TopProcesses_EmptySubtitle" xml:space="preserve">
+    <value>İşlemler örnekleniyor…</value>
+  </data>
+  <data name="Command_CopyPid" xml:space="preserve">
+    <value>PID'yi kopyala</value>
+  </data>
+  <data name="Command_OpenFileLocation" xml:space="preserve">
+    <value>Dosya konumunu aç</value>
+  </data>
+  <data name="Command_Kill" xml:space="preserve">
+    <value>Sonlandır</value>
+  </data>
+  <data name="Command_Refresh" xml:space="preserve">
+    <value>Yenile</value>
+  </data>
+  <data name="Kill_ConfirmTitle" xml:space="preserve">
+    <value>İşlemi sonlandır</value>
+  </data>
+  <data name="Kill_ConfirmDescriptionFormat" xml:space="preserve">
+    <value>{0} (PID {1}) sonlandırılsın mı?</value>
+  </data>
+  <data name="Kill_NothingToKill" xml:space="preserve">
+    <value>Sonlandırılacak bir şey yok.</value>
+  </data>
+  <data name="Kill_AlreadyExitedFormat" xml:space="preserve">
+    <value>{0}: işlem zaten sona ermiş.</value>
+  </data>
+  <data name="Kill_SuccessFormat" xml:space="preserve">
+    <value>{0} sonlandırıldı.</value>
+  </data>
+  <data name="Kill_AdminRequiredFormat" xml:space="preserve">
+    <value>{0} sonlandırılamıyor: yönetici yetkisiyle çalışıyor, SysPulse yetkisiz çalışıyor.</value>
+  </data>
+  <data name="Kill_Win32ErrorFormat" xml:space="preserve">
+    <value>{0} sonlandırılamıyor: {1}</value>
+  </data>
+  <data name="Kill_UnexpectedErrorFormat" xml:space="preserve">
+    <value>{0} sonlandırılamıyor: beklenmeyen hata.</value>
+  </data>
+  <data name="Provider_TopLevelTitle" xml:space="preserve">
+    <value>SysPulse – En çok kaynak kullanan işlemler</value>
+  </data>
+  <data name="Settings_ScanIntervalSeconds_Label" xml:space="preserve">
+    <value>Tarama aralığı (saniye, 2–300)</value>
+  </data>
+  <data name="Settings_ScanIntervalSeconds_Description" xml:space="preserve">
+    <value>SysPulse sistem normalken CPU ve belleği ne sıklıkla örnekler.</value>
+  </data>
+  <data name="Settings_RetryIntervalSeconds_Label" xml:space="preserve">
+    <value>Yeniden deneme aralığı (saniye, 1–60)</value>
+  </data>
+  <data name="Settings_RetryIntervalSeconds_Description" xml:space="preserve">
+    <value>Şüpheli bir ihlal ne sıklıkla yeniden kontrol edilir. Tarama aralığından küçük olmalı.</value>
+  </data>
+  <data name="Settings_RetryCount_Label" xml:space="preserve">
+    <value>Yeniden deneme sayısı (1–10)</value>
+  </data>
+  <data name="Settings_RetryCount_Description" xml:space="preserve">
+    <value>SysPulse uyarı vermeden önce art arda kaç denemenin ihlal etmesi gerektiği.</value>
+  </data>
+  <data name="Settings_CpuMonitoringEnabled_Label" xml:space="preserve">
+    <value>CPU'yu izle</value>
+  </data>
+  <data name="Settings_CpuMonitoringEnabled_Description" xml:space="preserve">
+    <value>CPU kullanımının ihlale sayılıp sayılmayacağı.</value>
+  </data>
+  <data name="Settings_CpuThreshold_Label" xml:space="preserve">
+    <value>CPU eşiği (%, 10–100)</value>
+  </data>
+  <data name="Settings_CpuThreshold_Description" xml:space="preserve">
+    <value>İhlal sayılacak CPU yüzdesi (bu değer ve üzeri).</value>
+  </data>
+  <data name="Settings_MemoryMonitoringEnabled_Label" xml:space="preserve">
+    <value>Belleği izle</value>
+  </data>
+  <data name="Settings_MemoryMonitoringEnabled_Description" xml:space="preserve">
+    <value>Bellek kullanımının ihlale sayılıp sayılmayacağı.</value>
+  </data>
+  <data name="Settings_MemoryThreshold_Label" xml:space="preserve">
+    <value>Bellek eşiği (%, 10–100)</value>
+  </data>
+  <data name="Settings_MemoryThreshold_Description" xml:space="preserve">
+    <value>İhlal sayılacak bellek yüzdesi (bu değer ve üzeri).</value>
+  </data>
+  <data name="Settings_HysteresisPercent_Label" xml:space="preserve">
+    <value>Histerezis (%, 0–20)</value>
+  </data>
+  <data name="Settings_HysteresisPercent_Description" xml:space="preserve">
+    <value>SysPulse'ın uyarı durumundan çıkması için bir metriğin eşiğin ne kadar altına inmesi gerektiği.</value>
+  </data>
+  <data name="Settings_ShowToast_Label" xml:space="preserve">
+    <value>Uyarıda bildirim göster</value>
+  </data>
+  <data name="Settings_ShowToast_Description" xml:space="preserve">
+    <value>Bir uyarı bölümü başladığında ilk seferde Windows bildirimi göster.</value>
+  </data>
+  <data name="Settings_ConfirmKill_Label" xml:space="preserve">
+    <value>Sonlandırmadan önce onay iste</value>
+  </data>
+  <data name="Settings_ConfirmKill_Description" xml:space="preserve">
+    <value>Bir işlemi sonlandırmadan önce onay iste.</value>
+  </data>
+  <data name="Settings_KillProcessTree_Label" xml:space="preserve">
+    <value>İşlem ağacını sonlandır</value>
+  </data>
+  <data name="Settings_KillProcessTree_Description" xml:space="preserve">
+    <value>Bir işlem sonlandırılırken alt işlemlerini de sonlandır.</value>
+  </data>
+  <data name="Settings_CompactLabel_Label" xml:space="preserve">
+    <value>Kompakt dock etiketi</value>
+  </data>
+  <data name="Settings_CompactLabel_Description" xml:space="preserve">
+    <value>İki satırlı "CPU %30" / "MEM %50" etiketi yerine tek satırlık "%30 | %50" etiketi kullan.</value>
+  </data>
+  <data name="Settings_ProtectedProcesses_Label" xml:space="preserve">
+    <value>Bunlar için Sonlandır önerilmesin</value>
+  </data>
+  <data name="Settings_ProtectedProcesses_Description" xml:space="preserve">
+    <value>Virgülle ayrılmış, büyük/küçük harf duyarsız, ".exe" uzantısı isteğe bağlı ek işlem adları.</value>
+  </data>
+</root>
