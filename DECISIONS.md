@@ -38,3 +38,8 @@ SDK deviations, trade-offs and measurements for SysPulse. Research details and s
 
 ## Future options
 - `GroupByName` (group multi-process apps in Top-5) — not in v1.
+
+## D11 — Two-line dock label, no "⚠" in text (user decision, 2026-09-28)
+- The Dock truncated `⚠ CPU 82% · MEM 93%` to `CPU 82% · M…`. Resolves spec §11 open point 1.
+- Title = `CPU 82%`, Subtitle = `MEM 93%` (on alert: `MEM 93% · High memory`). `CompactLabel` = single title `82% | 93%`, alert reason in subtitle.
+- The yellow icon is the alert cue; the `⚠` prefix from spec §5.3 is dropped (it was shown twice and cost width).

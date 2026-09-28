@@ -28,7 +28,8 @@ namespace SysPulse.Dock;
 /// </remarks>
 public sealed partial class StatusDockItem : ListItem
 {
-    private const string InitialTitle = "CPU –% · MEM –%";
+    private const string InitialTitle = "CPU –%";
+    private const string InitialSubtitle = "MEM –%";
 
     private static readonly IconInfo NormalIconValue = IconHelpers.FromRelativePath("Assets\\pulse.svg");
     private static readonly IconInfo WarningIconValue = IconHelpers.FromRelativePath("Assets\\warning-yellow.svg");
@@ -60,6 +61,7 @@ public sealed partial class StatusDockItem : ListItem
 
         Command = command;
         Title = InitialTitle;
+        Subtitle = InitialSubtitle;
         Icon = NormalIconValue;
     }
 
@@ -84,8 +86,7 @@ public sealed partial class StatusDockItem : ListItem
         ArgumentNullException.ThrowIfNull(opts);
 
         bool alert = eval.State == HealthState.Alert;
-        string title = BuildTitle(snap, opts, alert);
-        string subtitle = alert ? BuildAlertSubtitle(eval.BreachKind) : string.Empty;
+        (string title, string subtitle) = BuildLabel(snap, opts, alert ? eval.BreachKind : BreachKind.None);
 
         SetTitleIfChanged(title);
         SetSubtitleIfChanged(subtitle);
@@ -144,16 +145,25 @@ public sealed partial class StatusDockItem : ListItem
         }
     }
 
-    private static string BuildTitle(SystemSnapshot snap, SysPulseOptions opts, bool alert)
+    /// <summary>
+    /// Two-line label (DECISIONS.md D11): CPU in the title, memory in the subtitle, the alert
+    /// reason appended to the subtitle. CompactLabel keeps a single "30% | 50%" title with only
+    /// the alert reason below. The yellow icon is the alert cue; no "⚠" in the text.
+    /// </summary>
+    internal static (string Title, string Subtitle) BuildLabel(SystemSnapshot snap, SysPulseOptions opts, BreachKind alertKind)
     {
         int cpu = RoundPercent(snap.CpuPercent);
         int mem = RoundPercent(snap.MemoryPercent);
+        string reason = BuildAlertSubtitle(alertKind);
 
-        string body = opts.CompactLabel
-            ? string.Format(CultureInfo.InvariantCulture, "{0}% | {1}%", cpu, mem)
-            : string.Format(CultureInfo.InvariantCulture, "CPU {0}% · MEM {1}%", cpu, mem);
+        if (opts.CompactLabel)
+        {
+            return (string.Format(CultureInfo.InvariantCulture, "{0}% | {1}%", cpu, mem), reason);
+        }
 
-        return alert ? "⚠ " + body : body;
+        string title = string.Format(CultureInfo.InvariantCulture, "CPU {0}%", cpu);
+        string memText = string.Format(CultureInfo.InvariantCulture, "MEM {0}%", mem);
+        return (title, reason.Length == 0 ? memText : memText + " · " + reason);
     }
 
     private static string BuildAlertSubtitle(BreachKind kind) => kind switch
