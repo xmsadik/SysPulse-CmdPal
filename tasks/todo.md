@@ -62,12 +62,12 @@ Kaynak: `SysPulse-CmdPal-Dock-Extension-Spec.md` (tek doğruluk kaynağı; SDK i
 - [x] G1. `AlertNotifier` (ToastNotificationManager, epizot başına 1 toast, `ShowToast`, hata → logla-devam) → commit
 
 ### Faz H — Cila & ölçüm
-- [ ] H1. Lokalizasyon en-US + tr-TR
-- [ ] H2. Rolling file log (LocalState, ~1 MB, debug kapalı)
-- [ ] H3. `TESTING.md` (CPU/mem stres scriptleri, dikey Dock, label-off, elevated kill)
-- [ ] H4. Overhead ölçümü (10 dk, <%1 CPU, <60 MB) + leak testi (30 dk @ 2 sn, private bytes düz) → `DECISIONS.md`
+- [x] H1. Lokalizasyon en-US + tr-TR
+- [x] H2. Rolling file log (LocalState, ~1 MB, debug kapalı)
+- [x] H3. `TESTING.md` (CPU/mem stres scriptleri, dikey Dock, label-off, elevated kill)
+- [x] H4. Overhead ölçümü (10 dk, <%1 CPU, <60 MB) + leak testi (30 dk @ 2 sn, private bytes düz) → `DECISIONS.md`
 - [x] H5. ARM64 derleme kontrolü
-- [ ] H6. Son review (bug-expert / Fable diff review) → commit
+- [x] H6. Son review (bug-expert / Fable diff review) → commit
 
 ## 3. Riskler
 
@@ -89,4 +89,8 @@ Kaynak: `SysPulse-CmdPal-Dock-Extension-Spec.md` (tek doğruluk kaynağı; SDK i
 Opus: spec/karar/onay · Fable: plan & diff critique · Sonnet: faz bazlı implementasyon (her faz ayrı sub-agent).
 
 ## Review
-_(implementasyon sonrası doldurulacak)_
+- All phases A–H done; each verified by build + unit tests (162 passing) and, for UI behavior, by the user in the running Command Palette.
+- Spec deviations are recorded in DECISIONS.md (D1–D16): SDK 0.12, Core/Tests split, load-gated monitor, NtQuerySystemInformation, WinRT toast, .resx, two-line label, review fixes.
+- Final adversarial review found 8 defects (2 on Kill targeting); all fixed in 13232e5.
+- Overhead: 0.02 % avg CPU, ~12–18 MB private bytes, flat over 15 min at 2 s scan.
+- Open: DockLabelWidth API (not in NuGet 0.12.260812002), GroupByName (future), manual tr-TR / vertical-Dock checks in TESTING.md.

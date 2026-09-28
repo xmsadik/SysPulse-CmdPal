@@ -87,3 +87,15 @@ SDK deviations, trade-offs and measurements for SysPulse. Research details and s
 - **5 — Non-finite settings values.** `SettingParsers.ParseNumber` now rejects a parse that yields `NaN`/±`Infinity`, falling back like an unparsable string. `SysPulseOptions.Clamp` clamps `CpuThreshold`/`MemoryThreshold`/`HysteresisPercent` only when finite, else falls back to that property's default (`Math.Clamp` otherwise leaves `NaN` untouched).
 - **6 — Top-5 before first monitor tick.** New `SystemSampler.GetTotalPhysicalBytes()` (static, no instance/priming needed) backstops `TopProcessesPage` when `HealthMonitor.LastSnapshot.TotalPhysBytes` is still 0 (no tick yet), so the very first render already ranks by real memory share. `ProcessRanker`'s composite tiebreak now falls back to `PrivateBytes` before `Pid` (was CPU% before `Pid`, which never distinguished ties once every candidate is at 0% CPU).
 - **7 — Per-identity-change allocations.** `ProcessIconCache` gained a bounded (`GetOpenFileContextItem`, 256-entry, same clear-outright policy as its existing caches) cache of the "Open file location" `CommandContextItem` keyed by executable path, shared across slots/refreshes. `ProcessListItem` caches the composed `MoreCommands` array per `(pathContextItem, isProtected)` per slot instance (cleared at 32 entries). The new immutable `KillProcessCommand` is still allocated fresh per identity/protected change (not cached) — cheap enough, and caching it was called out as optional.
+
+## D16 — Overhead & leak measurements (spec §7), 2026-09-28
+Measured with `scripts/measure.ps1` (Debug x64 build, band pinned, flyout closed), 5 s sampling.
+
+| Run | Build | Avg CPU | Max CPU | Private MB first → last (max) | Private MB / 10 min (2nd half) | Handles |
+|---|---|---|---|---|---|---|
+| 10 min, default settings | pre-review | 0.015 % | 0.34 % | 15.5 → 11.1 (15.5) | +1.5 (GC sawtooth; last < first) | 497 → 385 |
+| 15 min, ScanInterval 2 s | final (13232e5) | 0.019 % | 0.78 % | 14.0 → 11.7 (17.7) | −0.46 | 507 → 378 |
+
+- Budget (< 1 % CPU, < 60 MB private) met with a wide margin; no private-bytes or handle growth.
+- Leak run shortened from spec's 30 min to 15 min at the user's request.
+- Not covered: sustained leak run with the Top-5 flyout held open (the per-tick allocation fix in D15 targets that path).
