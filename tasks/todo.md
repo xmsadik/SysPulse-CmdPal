@@ -37,22 +37,22 @@ Kaynak: `SysPulse-CmdPal-Dock-Extension-Spec.md` (tek doğruluk kaynağı; SDK i
 
 ### Faz B — Sistem örnekleme & canlı band
 - [x] B1. `SystemSampler` (`GetSystemTimes` delta, `GlobalMemoryStatusEx`) + testler
-- [ ] B2. `StatusDockItem` + `WrappedDockItem` ile `CPU x% · MEM y%` canlı band (Id'ler non-empty); Dock'a pinle, gözle doğrula → commit
+- [x] B2. `StatusDockItem` + `WrappedDockItem` ile `CPU x% · MEM y%` canlı band (Id'ler non-empty); Dock'a pinle, gözle doğrula → commit
 
 ### Faz C — Opsiyonlar, durum makinesi & alarm görseli
 - [x] C0. `SysPulseOptions` POCO (13 anahtar, clamp, `RetryInterval < ScanInterval`) + test 9  ← ayarları tüketen fazlardan önce
 - [x] C1. `Models.cs` (`SystemSnapshot`, `ProcessSample`, `HealthState`, `BreachKind`)
 - [x] C2. `HealthMonitor` (NORMAL/VERIFYING/ALERT, retry cadence, hysteresis, BreachKind, overlap guard) + test 1–5 + VERIFYING sırasında ayar değişimi testi
-- [ ] C3. ALERT görselleri: `warning-yellow.svg/png` (#FFC400), `⚠` başlık, subtitle; VERIFYING'de UI değişmez → görsel doğrulama → commit
+- [x] C3. ALERT görselleri: `warning-yellow.svg/png` (#FFC400), `⚠` başlık, subtitle; VERIFYING'de UI değişmez → görsel doğrulama → commit
 
 ### Faz D — Süreçler & Top-5
 - [x] D1. `ProcessSampler` (NtQuerySystemInformation, (PID,CreateTime) cache, delta CPU, ilk gözlem = 0 %, prune) + test 6
 - [x] D2. Ranking (Cpu / Memory / composite) + test 7
-- [ ] D3. `TopProcessesPage` + 5 slot, subtitle formatı, ikon, `Refresh`, non-blocking `GetItems()` + 2 sn tazelik kuralı, context menü (Open file location, Copy PID); unit test: `GetItems()` her çağrıda aynı referansları döner → commit
+- [x] D3. `TopProcessesPage` + 5 slot, subtitle formatı, ikon, `Refresh`, non-blocking `GetItems()` + 2 sn tazelik kuralı, context menü (Open file location, Copy PID); unit test: `GetItems()` her çağrıda aynı referansları döner → commit
 
 ### Faz E — Kill
 - [x] E1. `ProtectedProcessList` (tek yer; spec listesi + `Microsoft.CmdPal.UI`, `PowerToys`, `explorer`, `Environment.ProcessId`; case-insensitive, `.exe` opsiyonel; ayardan ek) + test 8
-- [ ] E2. `KillProcessCommand` (PID+CreateTime kimlik kontrolü, `ConfirmKill`, `KillProcessTree`, `Win32Exception(5)` → "yönetici yetkisiyle çalışan süreç sonlandırılamaz" mesajı, sonrası refresh — CPU% bir sonraki örnekte oturur) → elevated süreçle manuel test → commit
+- [x] E2. `KillProcessCommand` (PID+CreateTime kimlik kontrolü, `ConfirmKill`, `KillProcessTree`, `Win32Exception(5)` → "yönetici yetkisiyle çalışan süreç sonlandırılamaz" mesajı, sonrası refresh — CPU% bir sonraki örnekte oturur) → elevated süreçle manuel test → commit
 
 ### Faz F — Ayarlar sayfası
 - [ ] F1. `SysPulseSettings` (toolkit `JsonSettingsManager`) → `SysPulseOptions`'a map
