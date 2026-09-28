@@ -13,4 +13,11 @@ namespace SysPulse.Core.Processes;
 /// <param name="CpuPercent">CPU utilization since the previous sample, 0..100 (see <see cref="ProcessCpuTracker"/>).</param>
 /// <param name="PrivateBytes">Private (non-shared) committed memory, in bytes.</param>
 /// <param name="WorkingSetBytes">Working set size, in bytes.</param>
-public readonly record struct ProcessSample(int Pid, string Name, long CreateTime, double CpuPercent, ulong PrivateBytes, ulong WorkingSetBytes);
+/// <param name="ParentPid">
+/// The reported parent process id (<c>InheritedFromUniqueProcessId</c>), used by
+/// <see cref="ProcessTree"/> to compute a kill-tree's descendants. Defaults to <c>0</c> for
+/// callers that don't populate it. Not a reliable "is still my parent" signal on its own -- the
+/// parent PID can be reused after the real parent exits -- so tree computation also checks
+/// <see cref="CreateTime"/> against the candidate parent's creation time.
+/// </param>
+public readonly record struct ProcessSample(int Pid, string Name, long CreateTime, double CpuPercent, ulong PrivateBytes, ulong WorkingSetBytes, int ParentPid = 0);

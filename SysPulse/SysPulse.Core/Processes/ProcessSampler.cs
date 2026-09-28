@@ -125,10 +125,11 @@ public sealed partial class ProcessSampler : IProcessSampler, IDisposable
         {
             var entry = (SYSTEM_PROCESS_INFORMATION*)cursor;
             int pid = unchecked((int)entry->UniqueProcessId);
+            int parentPid = unchecked((int)entry->InheritedFromUniqueProcessId);
             string name = ReadName(pid, in entry->ImageName);
             ulong cpuTicks = unchecked((ulong)entry->UserTime) + unchecked((ulong)entry->KernelTime);
 
-            rawSamples.Add(new RawSample(pid, name, entry->CreateTime, (ulong)entry->PrivatePageCount, (ulong)entry->WorkingSetSize));
+            rawSamples.Add(new RawSample(pid, name, entry->CreateTime, (ulong)entry->PrivatePageCount, (ulong)entry->WorkingSetSize, parentPid));
             cpuInputs.Add(new ProcessCpuSample(pid, entry->CreateTime, cpuTicks));
 
             if (entry->NextEntryOffset == 0)
@@ -145,7 +146,7 @@ public sealed partial class ProcessSampler : IProcessSampler, IDisposable
         foreach (RawSample raw in rawSamples)
         {
             double cpuPercent = cpuPercents.TryGetValue(raw.Pid, out double percent) ? percent : 0.0;
-            results.Add(new ProcessSample(raw.Pid, raw.Name, raw.CreateTime, cpuPercent, raw.PrivateBytes, raw.WorkingSetBytes));
+            results.Add(new ProcessSample(raw.Pid, raw.Name, raw.CreateTime, cpuPercent, raw.PrivateBytes, raw.WorkingSetBytes, raw.ParentPid));
         }
 
         return results;
@@ -227,7 +228,7 @@ public sealed partial class ProcessSampler : IProcessSampler, IDisposable
     [LibraryImport("ntdll.dll")]
     private static partial int NtQuerySystemInformation(int systemInformationClass, nint systemInformation, int systemInformationLength, out int returnLength);
 
-    private readonly record struct RawSample(int Pid, string Name, long CreateTime, ulong PrivateBytes, ulong WorkingSetBytes);
+    private readonly record struct RawSample(int Pid, string Name, long CreateTime, ulong PrivateBytes, ulong WorkingSetBytes, int ParentPid);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct UNICODE_STRING

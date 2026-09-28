@@ -130,6 +130,12 @@
   <data name="Kill_UnexpectedErrorFormat" xml:space="preserve">
     <value>Cannot kill {0}: unexpected error.</value>
   </data>
+  <data name="Kill_ProtectedFormat" xml:space="preserve">
+    <value>Cannot kill {0}: it is protected.</value>
+  </data>
+  <data name="Kill_TreeProtectedFormat" xml:space="preserve">
+    <value>Cannot kill {0}'s process tree: {1} is protected.</value>
+  </data>
   <data name="Provider_TopLevelTitle" xml:space="preserve">
     <value>SysPulse – Top processes</value>
   </data>

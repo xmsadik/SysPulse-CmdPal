@@ -40,6 +40,27 @@ public class ProcessImagePathTests
     }
 
     /// <summary>
+    /// Code-review finding 8b: a caller using this for an identity check must be able to tell "no
+    /// such process" (exited) apart from "access denied" (very much alive, just unreachable).
+    /// </summary>
+    [Fact]
+    public void TryGetCreateTimeTicksResult_OwnProcess_ReturnsFoundWithPositiveCreateTime()
+    {
+        ProcessTimeQueryResult result = ProcessImagePath.TryGetCreateTimeTicksResult(Environment.ProcessId);
+
+        Assert.Equal(ProcessTimeQueryStatus.Found, result.Status);
+        Assert.True(result.CreateTime > 0);
+    }
+
+    [Fact]
+    public void TryGetCreateTimeTicksResult_NonExistentPid_ReturnsNotFound()
+    {
+        ProcessTimeQueryResult result = ProcessImagePath.TryGetCreateTimeTicksResult(NonExistentPid());
+
+        Assert.Equal(ProcessTimeQueryStatus.NotFound, result.Status);
+    }
+
+    /// <summary>
     /// A PID very unlikely to correspond to any live process (Windows PIDs are small multiples
     /// of 4, well below this value, even on long-running machines).
     /// </summary>

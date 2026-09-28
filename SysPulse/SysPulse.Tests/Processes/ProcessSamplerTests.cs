@@ -38,6 +38,19 @@ public class ProcessSamplerTests
         Assert.Equal("Idle", idle.Name);
     }
 
+    /// <summary>Code-review finding 2: <see cref="ProcessTree"/> needs a real parent PID per sample.</summary>
+    [Fact]
+    public void Sample_CurrentProcess_HasPositiveParentPid()
+    {
+        using var sampler = new ProcessSampler();
+
+        IReadOnlyList<ProcessSample> samples = sampler.Sample();
+
+        int currentPid = Environment.ProcessId;
+        ProcessSample self = Assert.Single(samples, p => p.Pid == currentPid);
+        Assert.True(self.ParentPid > 0, $"Expected a positive parent pid for the current process, got {self.ParentPid}.");
+    }
+
     [Fact]
     public void Sample_RepeatedCalls_DoNotThrow()
     {

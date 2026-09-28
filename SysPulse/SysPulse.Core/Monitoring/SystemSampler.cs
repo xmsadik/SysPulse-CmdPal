@@ -11,6 +11,12 @@ namespace SysPulse.Core.Monitoring;
 public sealed partial class SystemSampler : ISystemSampler
 {
     private readonly TimeProvider _timeProvider;
+
+    // Code-review finding 4: serializes Sample() so this instance is safe even if it were ever
+    // (accidentally) shared across concurrently-running loops -- the CPU-delta fields below are
+    // read-then-written as a unit and must not interleave.
+    private readonly Lock _sampleLock = new();
+
     private ulong _lastIdle;
     private ulong _lastKernel;
     private ulong _lastUser;
@@ -44,40 +50,57 @@ public sealed partial class SystemSampler : ISystemSampler
     /// </remarks>
     public SystemSnapshot Sample()
     {
-        if (!GetSystemTimes(out FILETIME idle, out FILETIME kernel, out FILETIME user))
+        lock (_sampleLock)
         {
-            throw new InvalidOperationException($"GetSystemTimes failed with Win32 error {Marshal.GetLastWin32Error()}.");
+            if (!GetSystemTimes(out FILETIME idle, out FILETIME kernel, out FILETIME user))
+            {
+                throw new InvalidOperationException($"GetSystemTimes failed with Win32 error {Marshal.GetLastWin32Error()}.");
+            }
+
+            ulong idleTicks = ToTicks(idle);
+            ulong kernelTicks = ToTicks(kernel);
+            ulong userTicks = ToTicks(user);
+
+            double cpuPercent;
+            if (!_primed)
+            {
+                cpuPercent = 0.0;
+                _primed = true;
+            }
+            else
+            {
+                cpuPercent = ComputeCpuPercent(_lastIdle, _lastKernel, _lastUser, idleTicks, kernelTicks, userTicks);
+            }
+
+            _lastIdle = idleTicks;
+            _lastKernel = kernelTicks;
+            _lastUser = userTicks;
+
+            var memoryStatus = default(MEMORYSTATUSEX);
+            memoryStatus.dwLength = (uint)Unsafe.SizeOf<MEMORYSTATUSEX>();
+            if (!GlobalMemoryStatusEx(ref memoryStatus))
+            {
+                throw new InvalidOperationException($"GlobalMemoryStatusEx failed with Win32 error {Marshal.GetLastWin32Error()}.");
+            }
+
+            double memoryPercent = ComputeMemoryPercent(memoryStatus.ullTotalPhys, memoryStatus.ullAvailPhys);
+
+            return new SystemSnapshot(cpuPercent, memoryPercent, memoryStatus.ullTotalPhys, _timeProvider.GetUtcNow());
         }
+    }
 
-        ulong idleTicks = ToTicks(idle);
-        ulong kernelTicks = ToTicks(kernel);
-        ulong userTicks = ToTicks(user);
-
-        double cpuPercent;
-        if (!_primed)
-        {
-            cpuPercent = 0.0;
-            _primed = true;
-        }
-        else
-        {
-            cpuPercent = ComputeCpuPercent(_lastIdle, _lastKernel, _lastUser, idleTicks, kernelTicks, userTicks);
-        }
-
-        _lastIdle = idleTicks;
-        _lastKernel = kernelTicks;
-        _lastUser = userTicks;
-
+    /// <summary>
+    /// Returns the machine's total physical memory, in bytes, without requiring a
+    /// <see cref="SystemSampler"/> instance or a primed CPU-delta baseline. Code-review finding 6:
+    /// lets a caller (the Top-5 flyout) compute a real memory share before the monitor loop has
+    /// produced its first <see cref="SystemSnapshot"/>.
+    /// </summary>
+    /// <returns>Total physical memory in bytes, or <c>0</c> if the query fails.</returns>
+    public static ulong GetTotalPhysicalBytes()
+    {
         var memoryStatus = default(MEMORYSTATUSEX);
         memoryStatus.dwLength = (uint)Unsafe.SizeOf<MEMORYSTATUSEX>();
-        if (!GlobalMemoryStatusEx(ref memoryStatus))
-        {
-            throw new InvalidOperationException($"GlobalMemoryStatusEx failed with Win32 error {Marshal.GetLastWin32Error()}.");
-        }
-
-        double memoryPercent = ComputeMemoryPercent(memoryStatus.ullTotalPhys, memoryStatus.ullAvailPhys);
-
-        return new SystemSnapshot(cpuPercent, memoryPercent, memoryStatus.ullTotalPhys, _timeProvider.GetUtcNow());
+        return GlobalMemoryStatusEx(ref memoryStatus) ? memoryStatus.ullTotalPhys : 0;
     }
 
     /// <summary>

@@ -30,6 +30,7 @@ internal static class ProcessIconCache
 
     private static readonly ConcurrentDictionary<(int Pid, long CreateTime), string?> PathsByIdentity = new();
     private static readonly ConcurrentDictionary<string, IconInfo> IconsByPath = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, CommandContextItem> OpenFileContextItemsByPath = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Resolves (and caches) the executable path for a process identity.
@@ -80,5 +81,38 @@ internal static class ProcessIconCache
         var icon = new IconInfo(exePath);
         IconsByPath[exePath] = icon;
         return icon;
+    }
+
+    /// <summary>
+    /// Resolves (and caches, by executable path) the "Open file location" <see cref="CommandContextItem"/>
+    /// for a process's executable. Code-review finding 7: <see cref="ShowFileInFolderCommand"/> has
+    /// no mutable path property (docs/sdk-research.md §5), so without this cache every identity
+    /// change in every slot would allocate a fresh command + context item even when several
+    /// processes (or the same process across refreshes) share the same executable path.
+    /// </summary>
+    /// <param name="exePath">The executable path, or <see langword="null"/>/empty if unresolved.</param>
+    /// <param name="commandName">The localized command name (<c>Resources.Command_OpenFileLocation</c>).</param>
+    /// <returns>The cached <see cref="CommandContextItem"/> for <paramref name="exePath"/>, or <see langword="null"/> if <paramref name="exePath"/> is empty.</returns>
+    public static CommandContextItem? GetOpenFileContextItem(string? exePath, string commandName)
+    {
+        if (string.IsNullOrEmpty(exePath))
+        {
+            return null;
+        }
+
+        if (OpenFileContextItemsByPath.TryGetValue(exePath, out CommandContextItem? cached))
+        {
+            return cached;
+        }
+
+        if (OpenFileContextItemsByPath.Count > MaxEntries)
+        {
+            OpenFileContextItemsByPath.Clear();
+        }
+
+        var command = new ShowFileInFolderCommand(exePath) { Name = commandName };
+        var item = new CommandContextItem(command);
+        OpenFileContextItemsByPath[exePath] = item;
+        return item;
     }
 }

@@ -277,6 +277,24 @@ namespace SysPulse.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Cannot kill {0}: it is protected..
+        /// </summary>
+        public static string Kill_ProtectedFormat {
+            get {
+                return ResourceManager.GetString("Kill_ProtectedFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cannot kill {0}'s process tree: {1} is protected..
+        /// </summary>
+        public static string Kill_TreeProtectedFormat {
+            get {
+                return ResourceManager.GetString("Kill_TreeProtectedFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to SysPulse – Top processes.
         /// </summary>
         public static string Provider_TopLevelTitle {

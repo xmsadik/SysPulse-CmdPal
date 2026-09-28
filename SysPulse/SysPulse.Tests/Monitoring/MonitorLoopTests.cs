@@ -113,6 +113,51 @@ public class MonitorLoopTests
         await loop.StopAsync();
     }
 
+    /// <summary>
+    /// Code-review finding 4: Start called again before a previous (unawaited) StopAsync's caller
+    /// observes completion must not let the old and new loops run concurrently -- both touching
+    /// the shared sampler/monitor -- and must not corrupt the new loop's timer cadence.
+    /// </summary>
+    [Fact]
+    public async Task RestartWithoutAwaitingStop_DoesNotOverlapLoops_AndSampledFiresExactlyOncePerTickAfterwards()
+    {
+        var fakeTime = new FakeTimeProvider();
+        var sampler = new UnlimitedHealthySampler(fakeTime);
+        var monitor = new HealthMonitor(Defaults);
+        using var sync = new SemaphoreSlim(0);
+        int sampledCount = 0;
+        int faultedCount = 0;
+
+        await using var loop = new MonitorLoop(sampler, monitor, Defaults, fakeTime);
+        loop.Sampled += (_, _) =>
+        {
+            Interlocked.Increment(ref sampledCount);
+            sync.Release();
+        };
+        loop.Faulted += _ => Interlocked.Increment(ref faultedCount);
+
+        loop.Start();
+        fakeTime.Advance(TimeSpan.FromSeconds(Defaults.ScanIntervalSeconds));
+        Assert.True(await sync.WaitAsync(WaitTimeout));
+
+        // Stop without awaiting the returned task, then restart immediately: the previous loop's
+        // RunAsync may still be mid-flight (e.g. inside Sample()) when the new one starts.
+        _ = loop.StopAsync();
+        loop.Start();
+
+        Interlocked.Exchange(ref sampledCount, 0);
+        fakeTime.Advance(TimeSpan.FromSeconds(Defaults.ScanIntervalSeconds));
+        Assert.True(await sync.WaitAsync(WaitTimeout));
+
+        // Give any erroneous overlapping/duplicate tick a chance to fire before asserting there wasn't one.
+        await Task.Delay(200);
+
+        Assert.Equal(1, Volatile.Read(ref sampledCount));
+        Assert.Equal(0, Volatile.Read(ref faultedCount));
+
+        await loop.StopAsync();
+    }
+
     private sealed class ThrowThenSucceedSampler(FakeTimeProvider timeProvider) : ISystemSampler
     {
         private bool _thrown;
@@ -127,5 +172,10 @@ public class MonitorLoopTests
 
             return new SystemSnapshot(10, 10, 16_000_000_000, timeProvider.GetUtcNow());
         }
+    }
+
+    private sealed class UnlimitedHealthySampler(FakeTimeProvider timeProvider) : ISystemSampler
+    {
+        public SystemSnapshot Sample() => new(20, 30, 16_000_000_000, timeProvider.GetUtcNow());
     }
 }

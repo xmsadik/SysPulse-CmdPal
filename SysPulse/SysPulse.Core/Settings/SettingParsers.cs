@@ -28,14 +28,18 @@ public static class SettingParsers
 
         string trimmed = text.Trim();
 
+        // Code-review finding 5: double.TryParse accepts "NaN"/"Infinity"/"-Infinity" (their
+        // NumberFormatInfo symbols) regardless of style flags; a settings value that parses to a
+        // non-finite number is exactly as unusable downstream (clamping, arithmetic) as one that
+        // fails to parse at all, so it falls back the same way.
         if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double invariantValue))
         {
-            return invariantValue;
+            return double.IsFinite(invariantValue) ? invariantValue : fallback;
         }
 
         if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.CurrentCulture, out double currentCultureValue))
         {
-            return currentCultureValue;
+            return double.IsFinite(currentCultureValue) ? currentCultureValue : fallback;
         }
 
         return fallback;

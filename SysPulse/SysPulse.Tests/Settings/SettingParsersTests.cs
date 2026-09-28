@@ -76,4 +76,14 @@ public class SettingParsersTests
     {
         Assert.Equal(-1, SettingParsers.ParseNumber(text, -1));
     }
+
+    /// <summary>Code-review finding 5: a non-finite parse result is as unusable as a failed parse.</summary>
+    [Theory]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
+    [InlineData("-Infinity")]
+    public void ParseNumber_NonFiniteText_ReturnsFallback(string text)
+    {
+        Assert.Equal(-1, SettingParsers.ParseNumber(text, -1));
+    }
 }

@@ -116,7 +116,7 @@ internal sealed partial class TopProcessesPage : OnLoadDynamicListPage
         _slots = new ProcessListItem[SlotCount];
         for (int i = 0; i < SlotCount; i++)
         {
-            _slots[i] = new ProcessListItem(_optionsAccessor, () => StartRefreshIfIdle(), sharedItems);
+            _slots[i] = new ProcessListItem(_optionsAccessor, _protectedListAccessor, () => StartRefreshIfIdle(), sharedItems);
         }
 
         _slices = new IListItem[SlotCount + 1][];
@@ -260,7 +260,17 @@ internal sealed partial class TopProcessesPage : OnLoadDynamicListPage
         SysPulseOptions options = _optionsAccessor();
         HealthState state = _healthMonitor.State;
         BreachKind breachKind = _healthMonitor.BreachKind;
+
+        // Code-review finding 6: before the monitor loop's first tick, LastSnapshot is still the
+        // record's default value (TotalPhysBytes == 0), which would zero out every process's
+        // memory share in ProcessRanker's composite score. Fall back to a direct query so the
+        // very first Top-5 render already ranks by real memory usage.
         ulong totalPhysBytes = _healthMonitor.LastSnapshot.TotalPhysBytes;
+        if (totalPhysBytes == 0)
+        {
+            totalPhysBytes = SystemSampler.GetTotalPhysicalBytes();
+        }
+
         ProtectedProcessList protectedList = _protectedListAccessor();
 
         IReadOnlyList<ProcessSample> top =

@@ -28,15 +28,32 @@ namespace SysPulse.Pages;
 /// D4). Every property set is wrapped in its own try/catch for the same reason (PowerToys issue
 /// #50483: a throwing host-side PropChanged handler must not block later updates), and a property
 /// is only set when its value actually changed.
+/// <para>
+/// Code-review findings 1/7: <see cref="Commands.KillProcessCommand"/> is immutable, so a new
+/// instance is created only when this slot's (Pid, CreateTime) identity or protected status
+/// changes -- never a mutable rebind -- and <c>Command</c> is (re)assigned in that same step. The
+/// "Open file location" <see cref="CommandContextItem"/> and the composed <c>MoreCommands</c>
+/// array are cached (by executable path, and by (path item, isProtected) respectively) so that in
+/// steady state -- the same small set of processes rotating among the fixed slots -- no new
+/// per-refresh objects are allocated beyond the unavoidable <see cref="Commands.KillProcessCommand"/>.
+/// </para>
 /// </remarks>
 internal sealed partial class ProcessListItem : ListItem
 {
-    private readonly KillProcessCommand _killCommand;
+    private const int MoreCommandsCacheLimit = 32;
+
+    private readonly Func<SysPulseOptions> _optionsAccessor;
+    private readonly Func<ProtectedProcessList> _protectedListAccessor;
+    private readonly Action _requestRefresh;
     private readonly CopyTextCommand _copyPidCommand;
     private readonly CommandContextItem _copyPidContextItem;
     private readonly CommandContextItem[] _sharedTrailingItems;
 
-    private ShowFileInFolderCommand? _openFileCommand;
+    // Per-instance cache of the composed MoreCommands array, keyed by the (reference-cached)
+    // "Open file location" context item currently in play and the protected flag -- both of which
+    // fully determine the array's contents for a given slot instance (finding 7).
+    private readonly Dictionary<(CommandContextItem? PathItem, bool IsProtected), CommandContextItem[]> _moreCommandsCache = new();
+
     private CommandContextItem? _openFileContextItem;
 
     private int _pid = -1;
@@ -48,6 +65,7 @@ internal sealed partial class ProcessListItem : ListItem
     /// Initializes a new instance of the <see cref="ProcessListItem"/> class.
     /// </summary>
     /// <param name="optionsAccessor">Accessor for the current <see cref="SysPulse.Core.Settings.SysPulseOptions"/> (kill confirmation/tree, read at kill time).</param>
+    /// <param name="protectedListAccessor">Accessor for the current <see cref="ProtectedProcessList"/>, handed to each <see cref="Commands.KillProcessCommand"/> for its kill-time re-check.</param>
     /// <param name="requestRefresh">Callback to force an immediate Top-5 refresh (used after a kill).</param>
     /// <param name="sharedTrailingItems">
     /// Context items shared by every slot and appended after the per-process ones (Refresh,
@@ -55,12 +73,18 @@ internal sealed partial class ProcessListItem : ListItem
     /// </param>
     public ProcessListItem(
         Func<SysPulseOptions> optionsAccessor,
+        Func<ProtectedProcessList> protectedListAccessor,
         Action requestRefresh,
         CommandContextItem[] sharedTrailingItems)
     {
+        ArgumentNullException.ThrowIfNull(optionsAccessor);
+        ArgumentNullException.ThrowIfNull(protectedListAccessor);
+        ArgumentNullException.ThrowIfNull(requestRefresh);
         ArgumentNullException.ThrowIfNull(sharedTrailingItems);
 
-        _killCommand = new KillProcessCommand(optionsAccessor, requestRefresh);
+        _optionsAccessor = optionsAccessor;
+        _protectedListAccessor = protectedListAccessor;
+        _requestRefresh = requestRefresh;
         _copyPidCommand = new CopyTextCommand(string.Empty) { Name = Resources.Command_CopyPid };
         _copyPidContextItem = new CommandContextItem(_copyPidCommand);
         _sharedTrailingItems = sharedTrailingItems;
@@ -87,19 +111,28 @@ internal sealed partial class ProcessListItem : ListItem
         SetTitleIfChanged(sample.Name);
         SetSubtitleIfChanged(ProcessSubtitleFormatter.Format(sample, isProtected));
 
-        _killCommand.Bind(sample.Pid, sample.CreateTime, sample.Name);
         UpdateCopyPidText(sample.Pid);
 
         if (identityChanged)
         {
             string? exePath = ProcessIconCache.GetPath(sample.Pid, sample.CreateTime);
             UpdateIcon(exePath);
-            UpdateOpenFileCommand(exePath);
+            _openFileContextItem = ProcessIconCache.GetOpenFileContextItem(exePath, Resources.Command_OpenFileLocation);
         }
 
-        if (!_commandsInitialized || identityChanged || isProtected != _lastIsProtected)
+        bool protectedChanged = isProtected != _lastIsProtected;
+        if (!_commandsInitialized || identityChanged || protectedChanged)
         {
-            UpdatePrimaryCommand(isProtected);
+            // Immutable KillProcessCommand (findings 1/3): a new instance every time the slot's
+            // identity or protected status changes, never a mutable rebind. Command is assigned
+            // in this same step (UpdatePrimaryCommand below).
+            var killCommand = new KillProcessCommand(
+                new KillProcessCommand.KillTarget(sample.Pid, sample.CreateTime, sample.Name),
+                _optionsAccessor,
+                _protectedListAccessor,
+                _requestRefresh);
+
+            UpdatePrimaryCommand(killCommand, isProtected);
             UpdateMoreCommands(isProtected);
             _commandsInitialized = true;
         }
@@ -172,19 +205,11 @@ internal sealed partial class ProcessListItem : ListItem
         }
     }
 
-    private void UpdateOpenFileCommand(string? exePath)
-    {
-        // ShowFileInFolderCommand has no mutable path property (docs/sdk-research.md §5), so it is
-        // only reallocated when the slot's process identity -- and therefore its path -- changes.
-        _openFileCommand = string.IsNullOrEmpty(exePath) ? null : new ShowFileInFolderCommand(exePath) { Name = Resources.Command_OpenFileLocation };
-        _openFileContextItem = _openFileCommand is null ? null : new CommandContextItem(_openFileCommand);
-    }
-
-    private void UpdatePrimaryCommand(bool isProtected)
+    private void UpdatePrimaryCommand(KillProcessCommand killCommand, bool isProtected)
     {
         // Spec §5.6: never offer Kill for a protected process. Copy PID is used as a
         // non-destructive primary command instead (documented in the task report).
-        ICommand primary = isProtected ? _copyPidCommand : _killCommand;
+        ICommand primary = isProtected ? _copyPidCommand : killCommand;
         try
         {
             Command = primary;
@@ -197,23 +222,35 @@ internal sealed partial class ProcessListItem : ListItem
 
     private void UpdateMoreCommands(bool isProtected)
     {
-        var items = new List<CommandContextItem>(4);
-        if (_openFileContextItem is not null)
+        var cacheKey = (_openFileContextItem, isProtected);
+        if (!_moreCommandsCache.TryGetValue(cacheKey, out CommandContextItem[]? items))
         {
-            items.Add(_openFileContextItem);
-        }
+            var list = new List<CommandContextItem>(2 + _sharedTrailingItems.Length);
+            if (_openFileContextItem is not null)
+            {
+                list.Add(_openFileContextItem);
+            }
 
-        // Copy PID is already the primary command for protected processes; avoid offering it twice.
-        if (!isProtected)
-        {
-            items.Add(_copyPidContextItem);
-        }
+            // Copy PID is already the primary command for protected processes; avoid offering it twice.
+            if (!isProtected)
+            {
+                list.Add(_copyPidContextItem);
+            }
 
-        items.AddRange(_sharedTrailingItems);
+            list.AddRange(_sharedTrailingItems);
+            items = list.ToArray();
+
+            if (_moreCommandsCache.Count >= MoreCommandsCacheLimit)
+            {
+                _moreCommandsCache.Clear();
+            }
+
+            _moreCommandsCache[cacheKey] = items;
+        }
 
         try
         {
-            MoreCommands = items.ToArray();
+            MoreCommands = items;
         }
         catch (Exception ex)
         {

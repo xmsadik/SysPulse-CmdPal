@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -16,78 +17,78 @@ using SysPulse.Properties;
 namespace SysPulse.Commands;
 
 /// <summary>
-/// Spec §5.6's kill action. One instance is reused per <see cref="Pages.ProcessListItem"/> slot
-/// (spec §5.5's "reuse command instances" requirement) and rebound to the currently displayed
-/// process via <see cref="Bind"/> on every list refresh, rather than being reallocated.
+/// Spec §5.6's kill action. Immutable (code-review findings 1/3): each instance is bound for life
+/// to the single <see cref="KillTarget"/> (PID + creation time + name) it was constructed with.
+/// <see cref="Pages.ProcessListItem"/> creates a new instance only when its slot's process
+/// identity -- or protected status -- changes, and assigns it to <c>Command</c> in that same step;
+/// there is no mutable rebind, so a confirmation dialog left open across refreshes can never end
+/// up acting on whatever process happens to occupy the slot when the user finally clicks Confirm.
 /// </summary>
 /// <remarks>
 /// <see cref="Invoke"/> only decides whether confirmation is needed; the actual kill runs in
 /// <see cref="DoKill"/>, invoked either directly (when <see cref="SysPulseOptions.ConfirmKill"/>
 /// is off) or via the inner <see cref="DoKillConfirmedCommand"/> handed to
 /// <c>ConfirmationArgs.PrimaryCommand</c> -- the pattern documented in docs/sdk-research.md §5 for
-/// <c>CommandResult.Confirm</c>.
+/// <c>CommandResult.Confirm</c>. <see cref="DoKill"/> re-checks the protected-process list at kill
+/// time (not just whatever was true when the command was built or the dialog opened) and, for a
+/// single process, terminates it via <see cref="ProcessTerminator.TryTerminate"/> -- one native
+/// handle, identity-checked and terminated atomically through that same handle, closing the
+/// classic "kill the wrong process because its PID got reused" TOCTOU window that a two-step
+/// check-then-<c>Process.Kill</c> sequence has.
 /// </remarks>
 internal sealed partial class KillProcessCommand : InvokableCommand
 {
+    private readonly KillTarget _target;
     private readonly Func<SysPulseOptions> _optionsAccessor;
+    private readonly Func<ProtectedProcessList> _protectedListAccessor;
     private readonly Action _requestRefresh;
 
-    private int _pid;
-    private long _createTime;
-    private string _processName = string.Empty;
-
-    public KillProcessCommand(Func<SysPulseOptions> optionsAccessor, Action requestRefresh)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="KillProcessCommand"/> class, permanently bound
+    /// to <paramref name="target"/>.
+    /// </summary>
+    /// <param name="target">The process this command kills. Immutable for the command's lifetime.</param>
+    /// <param name="optionsAccessor">Accessor for the current <see cref="SysPulseOptions"/> (confirm/tree, read at kill time).</param>
+    /// <param name="protectedListAccessor">Accessor for the current <see cref="ProtectedProcessList"/>, re-checked at kill time.</param>
+    /// <param name="requestRefresh">Callback to force an immediate Top-5 refresh (used after a kill).</param>
+    public KillProcessCommand(KillTarget target, Func<SysPulseOptions> optionsAccessor, Func<ProtectedProcessList> protectedListAccessor, Action requestRefresh)
     {
         ArgumentNullException.ThrowIfNull(optionsAccessor);
+        ArgumentNullException.ThrowIfNull(protectedListAccessor);
         ArgumentNullException.ThrowIfNull(requestRefresh);
 
+        _target = target;
         _optionsAccessor = optionsAccessor;
+        _protectedListAccessor = protectedListAccessor;
         _requestRefresh = requestRefresh;
         Id = "com.syspulse.killprocess";
         Name = Resources.Command_Kill;
-        Icon = new IconInfo("\uE894"); // Segoe Fluent "ChromeClose"-adjacent "delete" glyph.
-    }
-
-    /// <summary>
-    /// Rebinds this reused command instance to the process currently occupying the slot.
-    /// </summary>
-    /// <param name="pid">The process id.</param>
-    /// <param name="createTime">The process's creation time (spec §5.6 identity check).</param>
-    /// <param name="processName">The process's display name, for confirmation/status text.</param>
-    public void Bind(int pid, long createTime, string processName)
-    {
-        _pid = pid;
-        _createTime = createTime;
-        _processName = processName;
+        Icon = new IconInfo(""); // Segoe Fluent "ChromeClose"-adjacent "delete" glyph.
     }
 
     public override CommandResult Invoke()
     {
         SysPulseOptions options = _optionsAccessor();
 
-        // Capture the target now: the slot is rebound on every refresh, and the confirmation
-        // dialog may stay open across several refreshes. The kill must hit exactly the process
-        // the user was shown, never whatever occupies the slot when they click Confirm.
-        var target = new KillTarget(_pid, _createTime, _processName);
-
         if (!options.ConfirmKill)
         {
-            return DoKill(target);
+            return DoKill(_target);
         }
 
-        string description = string.Format(CultureInfo.InvariantCulture, Resources.Kill_ConfirmDescriptionFormat, target.Name, target.Pid);
+        string description = string.Format(CultureInfo.InvariantCulture, Resources.Kill_ConfirmDescriptionFormat, _target.Name, _target.Pid);
         return CommandResult.Confirm(new ConfirmationArgs
         {
             Title = Resources.Kill_ConfirmTitle,
             Description = description,
-            PrimaryCommand = new DoKillConfirmedCommand(this, target),
+            PrimaryCommand = new DoKillConfirmedCommand(this, _target),
             IsPrimaryCommandCritical = true,
         });
     }
 
     /// <summary>
-    /// Performs the actual kill (spec §5.6): verifies the process identity hasn't changed since
-    /// binding, kills it, and reports the outcome via <see cref="ToastStatusMessage"/>. Never
+    /// Performs the actual kill (spec §5.6). Re-checks the protected list and, for a single
+    /// process, delegates to <see cref="ProcessTerminator.TryTerminate"/>; for a process tree, to
+    /// <see cref="DoKillTree"/>. Reports the outcome via <see cref="ToastStatusMessage"/>. Never
     /// throws.
     /// </summary>
     internal CommandResult DoKill(KillTarget target)
@@ -105,47 +106,121 @@ internal sealed partial class KillProcessCommand : InvokableCommand
 
         try
         {
-            long? currentCreateTime = ProcessImagePath.TryGetCreateTimeTicks(pid);
-            if (currentCreateTime is null || currentCreateTime.Value != expectedCreateTime)
+            // Re-check protection at kill time (findings 1/3): the confirmation dialog may have
+            // sat open while settings changed, so the isProtected value captured when this
+            // command was built can no longer be trusted.
+            ProtectedProcessList protectedList = _protectedListAccessor();
+            if (protectedList.IsProtected(name, pid))
             {
-                Log.Info(FormattableString.Invariant($"Kill skipped: {name} (PID {pid}) already exited."));
-                return ShowToast(Fmt(Resources.Kill_AlreadyExitedFormat, name), MessageState.Info, refresh: true);
+                Log.Warning(FormattableString.Invariant($"Kill refused: {name} (PID {pid}) is protected."));
+                return ShowToast(Fmt(Resources.Kill_ProtectedFormat, name), MessageState.Warning, refresh: false);
             }
 
             SysPulseOptions options = _optionsAccessor();
-            using Process process = Process.GetProcessById(pid);
-            process.Kill(entireProcessTree: options.KillProcessTree);
 
-            Log.Info(FormattableString.Invariant($"Kill succeeded: {name} (PID {pid}), tree={options.KillProcessTree}."));
-            return ShowToast(Fmt(Resources.Kill_SuccessFormat, name), MessageState.Success, refresh: true);
-        }
-        catch (ArgumentException)
-        {
-            // Process.GetProcessById: no process with this id.
-            Log.Info(FormattableString.Invariant($"Kill skipped: {name} (PID {pid}) already exited."));
-            return ShowToast(Fmt(Resources.Kill_AlreadyExitedFormat, name), MessageState.Info, refresh: true);
-        }
-        catch (InvalidOperationException)
-        {
-            // Process.Kill: process already exited between the identity check and the kill call.
-            Log.Info(FormattableString.Invariant($"Kill skipped: {name} (PID {pid}) already exited."));
-            return ShowToast(Fmt(Resources.Kill_AlreadyExitedFormat, name), MessageState.Info, refresh: true);
-        }
-        catch (Win32Exception ex) when (ex.NativeErrorCode == 5)
-        {
-            Log.Warning(FormattableString.Invariant($"Kill denied (access denied / elevated): {name} (PID {pid})."));
-            return ShowToast(Fmt(Resources.Kill_AdminRequiredFormat, name), MessageState.Warning, refresh: false);
-        }
-        catch (Win32Exception ex)
-        {
-            Log.Warning(FormattableString.Invariant($"Kill failed: {name} (PID {pid}): {ex.Message}"));
-            return ShowToast(Fmt(Resources.Kill_Win32ErrorFormat, name, ex.Message), MessageState.Warning, refresh: false);
+            return options.KillProcessTree
+                ? DoKillTree(pid, expectedCreateTime, name, protectedList)
+                : ReportSingleResult(ProcessTerminator.TryTerminate(pid, expectedCreateTime), name, pid);
         }
         catch (Exception ex)
         {
             Log.Error(FormattableString.Invariant($"Kill failed unexpectedly: {name} (PID {pid})"), ex);
             Debug.WriteLine($"SysPulse: KillProcessCommand.DoKill failed unexpectedly: {ex}");
             return ShowToast(Fmt(Resources.Kill_UnexpectedErrorFormat, name), MessageState.Warning, refresh: false);
+        }
+    }
+
+    /// <summary>
+    /// Kills the process tree rooted at (<paramref name="rootPid"/>, <paramref name="rootCreateTime"/>)
+    /// (spec §5.6, code-review finding 2): takes one fresh, short-lived process sample, computes
+    /// the live descendant set via <see cref="ProcessTree.GetDescendants"/>, refuses the whole
+    /// operation if any descendant is protected, then terminates descendants deepest-first and the
+    /// root last -- each through its own <see cref="ProcessTerminator.TryTerminate"/> call with
+    /// that descendant's own creation time, so a descendant whose PID got reused since the sample
+    /// is skipped rather than mis-targeted.
+    /// </summary>
+    private CommandResult DoKillTree(int rootPid, long rootCreateTime, string name, ProtectedProcessList protectedList)
+    {
+        IReadOnlyList<ProcessSample> all;
+        try
+        {
+            using var sampler = new ProcessSampler();
+            all = sampler.Sample();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(FormattableString.Invariant($"Kill tree failed: could not sample processes for {name} (PID {rootPid})"), ex);
+            return ShowToast(Fmt(Resources.Kill_UnexpectedErrorFormat, name), MessageState.Warning, refresh: false);
+        }
+
+        IReadOnlyList<ProcessSample> descendants = ProcessTree.GetDescendants(all, rootPid, rootCreateTime);
+
+        foreach (ProcessSample descendant in descendants)
+        {
+            if (protectedList.IsProtected(descendant.Name, descendant.Pid))
+            {
+                Log.Warning(FormattableString.Invariant(
+                    $"Kill tree refused: {name} (PID {rootPid})'s descendant {descendant.Name} (PID {descendant.Pid}) is protected."));
+                return ShowToast(Fmt(Resources.Kill_TreeProtectedFormat, name, descendant.Name), MessageState.Warning, refresh: false);
+            }
+        }
+
+        // Deepest descendants first (GetDescendants returns shallowest-first, so this is a simple
+        // reverse walk) so a child is never orphaned by killing its parent first; the root goes
+        // last. Best-effort: a descendant that fails to terminate does not abort the rest -- it is
+        // logged and the walk continues, matching "kill everything you can".
+        for (int i = descendants.Count - 1; i >= 0; i--)
+        {
+            ProcessSample descendant = descendants[i];
+            TerminateResult descendantResult = ProcessTerminator.TryTerminate(descendant.Pid, descendant.CreateTime);
+            LogDescendantResult(descendant, descendantResult);
+        }
+
+        TerminateResult rootResult = ProcessTerminator.TryTerminate(rootPid, rootCreateTime);
+        return ReportSingleResult(rootResult, name, rootPid);
+    }
+
+    private static void LogDescendantResult(ProcessSample descendant, TerminateResult result)
+    {
+        switch (result.Outcome)
+        {
+            case TerminateOutcome.Terminated:
+                Log.Info(FormattableString.Invariant($"Kill tree: terminated descendant {descendant.Name} (PID {descendant.Pid})."));
+                break;
+            case TerminateOutcome.NotFound:
+            case TerminateOutcome.IdentityMismatch:
+                // Already gone by the time we got to it (exited on its own, or taken down as
+                // another descendant's own child earlier in this same walk) -- not an error.
+                break;
+            default:
+                Log.Warning(FormattableString.Invariant(
+                    $"Kill tree: failed to terminate descendant {descendant.Name} (PID {descendant.Pid}): {result.Outcome}."));
+                break;
+        }
+    }
+
+    private CommandResult ReportSingleResult(TerminateResult result, string name, int pid)
+    {
+        switch (result.Outcome)
+        {
+            case TerminateOutcome.Terminated:
+                Log.Info(FormattableString.Invariant($"Kill succeeded: {name} (PID {pid})."));
+                return ShowToast(Fmt(Resources.Kill_SuccessFormat, name), MessageState.Success, refresh: true);
+
+            case TerminateOutcome.NotFound:
+            case TerminateOutcome.IdentityMismatch:
+                Log.Info(FormattableString.Invariant($"Kill skipped: {name} (PID {pid}) already exited."));
+                return ShowToast(Fmt(Resources.Kill_AlreadyExitedFormat, name), MessageState.Info, refresh: true);
+
+            case TerminateOutcome.AccessDenied:
+                Log.Warning(FormattableString.Invariant($"Kill denied (access denied / elevated): {name} (PID {pid})."));
+                return ShowToast(Fmt(Resources.Kill_AdminRequiredFormat, name), MessageState.Warning, refresh: false);
+
+            case TerminateOutcome.Failed:
+            default:
+                string win32Message = new Win32Exception(result.Win32Error).Message;
+                Log.Warning(FormattableString.Invariant($"Kill failed: {name} (PID {pid}): {win32Message}"));
+                return ShowToast(Fmt(Resources.Kill_Win32ErrorFormat, name, win32Message), MessageState.Warning, refresh: false);
         }
     }
 
@@ -198,6 +273,6 @@ internal sealed partial class KillProcessCommand : InvokableCommand
         public override CommandResult Invoke() => _owner.DoKill(_target);
     }
 
-    /// <summary>Immutable identity of the process a kill was requested for.</summary>
+    /// <summary>Immutable identity of the process a <see cref="KillProcessCommand"/> instance is bound to.</summary>
     internal readonly record struct KillTarget(int Pid, long CreateTime, string Name);
 }

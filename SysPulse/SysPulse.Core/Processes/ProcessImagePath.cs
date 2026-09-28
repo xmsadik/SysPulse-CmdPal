@@ -67,28 +67,54 @@ public static partial class ProcessImagePath
     /// The process's creation time, or <see langword="null"/> if the process does not exist, has
     /// already exited, or cannot be opened.
     /// </returns>
-    public static long? TryGetCreateTimeTicks(int pid)
+    public static long? TryGetCreateTimeTicks(int pid) =>
+        TryGetCreateTimeTicksResult(pid) is { Status: ProcessTimeQueryStatus.Found } result ? result.CreateTime : null;
+
+    /// <summary>
+    /// Same query as <see cref="TryGetCreateTimeTicks"/>, but distinguishes "no such process"
+    /// (already exited) from "access denied" (the process exists but this unelevated caller
+    /// cannot open it) -- code-review finding 8b: a caller that uses this for an identity check
+    /// must not treat "denied" the same as "exited", since a denied process is still very much
+    /// alive.
+    /// </summary>
+    /// <param name="pid">The process id.</param>
+    /// <returns>The query status and, when <see cref="ProcessTimeQueryStatus.Found"/>, the creation time.</returns>
+    public static ProcessTimeQueryResult TryGetCreateTimeTicksResult(int pid)
     {
         nint handle = OpenProcess(ProcessQueryLimitedInformation, false, unchecked((uint)pid));
         if (handle == 0)
         {
-            return null;
+            return ClassifyFailure(Marshal.GetLastWin32Error());
         }
 
         try
         {
             if (!GetProcessTimes(handle, out long creationTime, out _, out _, out _))
             {
-                return null;
+                return ClassifyFailure(Marshal.GetLastWin32Error());
             }
 
-            return creationTime;
+            return new ProcessTimeQueryResult(ProcessTimeQueryStatus.Found, creationTime);
         }
         finally
         {
             CloseHandle(handle);
         }
     }
+
+    /// <summary>
+    /// Maps a Win32 error from <c>OpenProcess</c>/<c>GetProcessTimes</c> to a
+    /// <see cref="ProcessTimeQueryResult"/>: <c>ERROR_ACCESS_DENIED</c> (5) is reported as
+    /// <see cref="ProcessTimeQueryStatus.AccessDenied"/>; anything else (including
+    /// <c>ERROR_INVALID_PARAMETER</c>, 87, for a PID that no longer exists) as
+    /// <see cref="ProcessTimeQueryStatus.NotFound"/>.
+    /// </summary>
+    private static ProcessTimeQueryResult ClassifyFailure(int win32Error) =>
+        win32Error == ErrorAccessDenied
+            ? new ProcessTimeQueryResult(ProcessTimeQueryStatus.AccessDenied, 0)
+            : new ProcessTimeQueryResult(ProcessTimeQueryStatus.NotFound, 0);
+
+    private const int ErrorAccessDenied = 5;
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     private static partial nint OpenProcess(uint desiredAccess, [MarshalAs(UnmanagedType.Bool)] bool inheritHandle, uint processId);
@@ -105,3 +131,21 @@ public static partial class ProcessImagePath
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool CloseHandle(nint handle);
 }
+
+/// <summary>The outcome of a <see cref="ProcessImagePath.TryGetCreateTimeTicksResult"/> query.</summary>
+public enum ProcessTimeQueryStatus
+{
+    /// <summary>The process was found and its creation time read.</summary>
+    Found,
+
+    /// <summary>No such process exists (already exited, or never existed).</summary>
+    NotFound,
+
+    /// <summary>The process exists but could not be opened due to insufficient rights.</summary>
+    AccessDenied,
+}
+
+/// <summary>The result of a <see cref="ProcessImagePath.TryGetCreateTimeTicksResult"/> call.</summary>
+/// <param name="Status">Which of the possible outcomes occurred.</param>
+/// <param name="CreateTime">The process's creation time, populated only when <paramref name="Status"/> is <see cref="ProcessTimeQueryStatus.Found"/>.</param>
+public readonly record struct ProcessTimeQueryResult(ProcessTimeQueryStatus Status, long CreateTime);

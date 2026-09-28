@@ -82,4 +82,17 @@ public class SystemSamplerTests
 
         Assert.Equal(0.0, result, precision: 6);
     }
+
+    /// <summary>
+    /// Code-review finding 6: the Top-5 flyout needs a real total-physical-memory figure before
+    /// the monitor loop has produced its first <see cref="SystemSnapshot"/> (whose
+    /// <see cref="SystemSnapshot.TotalPhysBytes"/> would otherwise be 0).
+    /// </summary>
+    [Fact]
+    public void GetTotalPhysicalBytes_ReturnsPositiveValue_WithoutAnInstance()
+    {
+        ulong totalPhysBytes = SystemSampler.GetTotalPhysicalBytes();
+
+        Assert.True(totalPhysBytes > 0, $"Expected a positive total physical memory figure, got {totalPhysBytes}.");
+    }
 }

@@ -26,8 +26,11 @@ public static class ProcessRanker
     /// </list>
     /// PID 0 ("Idle") and any pseudo-total entry named <c>_Total</c> are always excluded. Ties are
     /// broken deterministically: CPU ranking falls back to private bytes then PID; memory ranking
-    /// falls back to CPU% then PID; composite ranking falls back to CPU% then PID. All tiebreaks
-    /// end in PID so the result is fully deterministic.
+    /// falls back to CPU% then PID; composite ranking falls back to private bytes then PID (not
+    /// CPU%: two processes with equal composite score and 0% CPU each -- the common case while the
+    /// system is idle -- would otherwise always tie on the CPU fallback too and fall through to
+    /// PID order, ignoring memory entirely). All tiebreaks end in PID so the result is fully
+    /// deterministic.
     /// </remarks>
     /// <param name="samples">The candidate processes.</param>
     /// <param name="kind">The current breach kind.</param>
@@ -122,8 +125,8 @@ public static class ProcessRanker
             return byScore;
         }
 
-        int byCpu = b.CpuPercent.CompareTo(a.CpuPercent);
-        return byCpu != 0 ? byCpu : a.Pid.CompareTo(b.Pid);
+        int byMem = b.PrivateBytes.CompareTo(a.PrivateBytes);
+        return byMem != 0 ? byMem : a.Pid.CompareTo(b.Pid);
     }
 
     /// <summary>Pure composite-score math, kept separately testable.</summary>

@@ -142,6 +142,29 @@ public class ProcessRankerTests
         Assert.Equal([1, 2, 3], top.Select(p => p.Pid));
     }
 
+    /// <summary>
+    /// Code-review finding 6: the composite ranking's tiebreak must fall back to private bytes
+    /// (not CPU%) before PID, so that when every candidate has 0% CPU -- the common case while
+    /// the system is idle -- ties are still broken by memory instead of falling straight through
+    /// to PID order.
+    /// </summary>
+    [Fact]
+    public void CompositeTie_AllZeroCpu_StillBreaksByPrivateBytesThenPid()
+    {
+        ProcessSample[] samples =
+        [
+            new ProcessSample(3, "a.exe", 3, CpuPercent: 0, PrivateBytes: 100, WorkingSetBytes: 100),
+            new ProcessSample(2, "b.exe", 2, CpuPercent: 0, PrivateBytes: 300, WorkingSetBytes: 300),
+            new ProcessSample(1, "c.exe", 1, CpuPercent: 0, PrivateBytes: 300, WorkingSetBytes: 300),
+        ];
+
+        IReadOnlyList<ProcessSample> top = ProcessRanker.Top(samples, BreachKind.Both, HealthState.Normal, Options, totalPhysBytes: 1_000);
+
+        // Pid 1 and 2 tie on composite score (both 0 cpu, 300 privateBytes) and on privateBytes;
+        // ascending pid breaks that tie. Pid 3 (lower privateBytes) ranks last.
+        Assert.Equal([1, 2, 3], top.Select(p => p.Pid));
+    }
+
     [Fact]
     public void CountZeroOrNegative_ReturnsEmpty()
     {

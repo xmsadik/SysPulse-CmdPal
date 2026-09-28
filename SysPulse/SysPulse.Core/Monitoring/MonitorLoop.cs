@@ -28,6 +28,13 @@ public sealed class MonitorLoop : IAsyncDisposable, IDisposable
     private Task? _loopTask;
     private CancellationTokenSource? _cts;
 
+    // Code-review finding 4: the task representing the *previous* Start/StopAsync cycle's loop,
+    // kept around (even after StopAsync clears the fields above) so a subsequent Start -- called
+    // before that StopAsync's caller ever awaits it -- can wait for the old loop to fully drain
+    // before its own first tick. Without this, an unawaited StopAsync followed immediately by
+    // Start could run two RunAsync loops concurrently, both touching the shared sampler/monitor.
+    private Task _previousLoopTask = Task.CompletedTask;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="MonitorLoop"/> class. Does not start sampling;
     /// call <see cref="Start"/>.
@@ -71,9 +78,12 @@ public sealed class MonitorLoop : IAsyncDisposable, IDisposable
                 throw new InvalidOperationException("MonitorLoop is already started.");
             }
 
+            Task previousLoopTask = _previousLoopTask;
+            _previousLoopTask = Task.CompletedTask;
+
             _cts = new CancellationTokenSource();
             _timer = new PeriodicTimer(firstTickDelay ?? CadenceFor(_monitor.State), _timeProvider);
-            _loopTask = RunAsync(_timer, _cts.Token);
+            _loopTask = RunAsync(previousLoopTask, _timer, _cts.Token);
         }
     }
 
@@ -92,6 +102,13 @@ public sealed class MonitorLoop : IAsyncDisposable, IDisposable
             _cts = null;
             _timer = null;
             _loopTask = null;
+
+            if (loopTask is not null)
+            {
+                // Published so a Start() called before this method's own caller awaits it can
+                // still wait for this loop to fully drain (see _previousLoopTask's remarks).
+                _previousLoopTask = loopTask;
+            }
         }
 
         if (cts is null)
@@ -169,27 +186,70 @@ public sealed class MonitorLoop : IAsyncDisposable, IDisposable
         ? TimeSpan.FromSeconds(_options.RetryIntervalSeconds)
         : TimeSpan.FromSeconds(_options.ScanIntervalSeconds);
 
-    private async Task RunAsync(PeriodicTimer timer, CancellationToken token)
+    private async Task RunAsync(Task previousLoopTask, PeriodicTimer timer, CancellationToken token)
     {
+        // Never run concurrently with the loop this one is replacing (code-review finding 4): if
+        // Start is called again before a prior StopAsync's caller awaits it, drain that old loop
+        // first. Its own Faulted/Sampled handling already reported whatever happened, so any
+        // exception here (including OperationCanceledException from the cancellation that ended
+        // it) is deliberately swallowed -- this is purely a hand-off point, not a place to surface
+        // errors a second time.
+        try
+        {
+            await previousLoopTask.ConfigureAwait(false);
+        }
+        catch
+        {
+        }
+
         try
         {
             while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
             {
-                bool showToast;
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                bool showToast = false;
+                bool proceed;
+                HealthEvaluation evaluation = default;
                 try
                 {
                     SystemSnapshot snapshot = _sampler.Sample();
-                    HealthEvaluation evaluation;
 
-                    // HealthMonitor is not thread-safe; UpdateOptions mutates it under the same gate.
+                    // HealthMonitor is not thread-safe; UpdateOptions mutates it under the same
+                    // gate. Re-check cancellation inside the gate: StopAsync may have run (and
+                    // cleared/canceled) between the WaitForNextTickAsync above and here.
                     lock (_gate)
                     {
-                        evaluation = _monitor.Evaluate(snapshot);
-                        showToast = _options.ShowToast;
-                        if (_timer is not null)
+                        proceed = !token.IsCancellationRequested;
+                        if (proceed)
                         {
-                            _timer.Period = evaluation.NextDelay;
+                            evaluation = _monitor.Evaluate(snapshot);
+                            showToast = _options.ShowToast;
+
+                            // Use the local `timer` (this loop's own instance), never the `_timer`
+                            // field: after a Stop/Start race the field may already point at a
+                            // different loop's timer, and writing to it here would corrupt that
+                            // other loop's cadence.
+                            try
+                            {
+                                timer.Period = evaluation.NextDelay;
+                            }
+                            catch (ObjectDisposedException)
+                            {
+                                // A concurrent StopAsync disposed this loop's timer between the
+                                // cancellation check above and here; the next
+                                // WaitForNextTickAsync call will observe the cancellation and end
+                                // the loop.
+                            }
                         }
+                    }
+
+                    if (!proceed)
+                    {
+                        continue;
                     }
 
                     if (evaluation.EnteredAlert && showToast)
@@ -201,7 +261,14 @@ public sealed class MonitorLoop : IAsyncDisposable, IDisposable
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    Faulted?.Invoke(ex);
+                    try
+                    {
+                        // Finding 8a: a throwing Faulted handler must not kill the loop.
+                        Faulted?.Invoke(ex);
+                    }
+                    catch
+                    {
+                    }
                 }
             }
         }

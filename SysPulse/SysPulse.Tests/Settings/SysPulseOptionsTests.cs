@@ -97,6 +97,34 @@ public class SysPulseOptionsTests
         Assert.Equal(expected, normalized.HysteresisPercent);
     }
 
+    /// <summary>Code-review finding 5: <c>Math.Clamp(double,...)</c> leaves NaN unchanged and passes infinities through; both must fall back to the property's default instead.</summary>
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void Normalize_NonFiniteCpuAndMemoryThresholds_FallBackToDefault(double input)
+    {
+        var options = new SysPulseOptions { CpuThreshold = input, MemoryThreshold = input };
+
+        var normalized = options.Normalize();
+
+        Assert.Equal(new SysPulseOptions().CpuThreshold, normalized.CpuThreshold);
+        Assert.Equal(new SysPulseOptions().MemoryThreshold, normalized.MemoryThreshold);
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void Normalize_NonFiniteHysteresisPercent_FallsBackToDefault(double input)
+    {
+        var options = new SysPulseOptions { HysteresisPercent = input };
+
+        var normalized = options.Normalize();
+
+        Assert.Equal(new SysPulseOptions().HysteresisPercent, normalized.HysteresisPercent);
+    }
+
     [Fact]
     public void Clamp_IsStaticEquivalentOfNormalize()
     {

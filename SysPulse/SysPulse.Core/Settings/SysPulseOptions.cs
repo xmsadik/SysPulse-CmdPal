@@ -117,11 +117,23 @@ public sealed record SysPulseOptions
             ScanIntervalSeconds = scanInterval,
             RetryIntervalSeconds = retryInterval,
             RetryCount = Clamp(options.RetryCount, MinRetryCount, MaxRetryCount),
-            CpuThreshold = Clamp(options.CpuThreshold, MinThreshold, MaxThreshold),
-            MemoryThreshold = Clamp(options.MemoryThreshold, MinThreshold, MaxThreshold),
-            HysteresisPercent = Clamp(options.HysteresisPercent, MinHysteresisPercent, MaxHysteresisPercent),
+            CpuThreshold = ClampFinite(options.CpuThreshold, MinThreshold, MaxThreshold, DefaultValues.CpuThreshold),
+            MemoryThreshold = ClampFinite(options.MemoryThreshold, MinThreshold, MaxThreshold, DefaultValues.MemoryThreshold),
+            HysteresisPercent = ClampFinite(options.HysteresisPercent, MinHysteresisPercent, MaxHysteresisPercent, DefaultValues.HysteresisPercent),
         };
     }
+
+    /// <summary>Default property values, used by <see cref="Clamp(SysPulseOptions)"/> as the fallback for a non-finite double.</summary>
+    private static readonly SysPulseOptions DefaultValues = new();
+
+    /// <summary>
+    /// Clamps <paramref name="value"/> to <c>[min, max]</c>, or returns <paramref name="fallbackDefault"/>
+    /// if <paramref name="value"/> is <c>NaN</c> or infinite (code-review finding 5: <see cref="Math.Clamp(double, double, double)"/>
+    /// leaves <c>NaN</c> unchanged -- every comparison against <c>NaN</c> is false -- and would
+    /// pass an infinite value straight through unless it happens to already sit outside the range).
+    /// </summary>
+    private static double ClampFinite(double value, double min, double max, double fallbackDefault) =>
+        double.IsFinite(value) ? Clamp(value, min, max) : fallbackDefault;
 
     /// <summary>Clamps <paramref name="value"/> to the inclusive range <c>[min, max]</c>.</summary>
     public static int Clamp(int value, int min, int max) => Math.Clamp(value, min, max);

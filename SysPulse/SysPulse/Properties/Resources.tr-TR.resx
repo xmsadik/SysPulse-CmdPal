@@ -130,6 +130,12 @@
   <data name="Kill_UnexpectedErrorFormat" xml:space="preserve">
     <value>{0} sonlandırılamıyor: beklenmeyen hata.</value>
   </data>
+  <data name="Kill_ProtectedFormat" xml:space="preserve">
+    <value>{0} sonlandırılamıyor: korumalı.</value>
+  </data>
+  <data name="Kill_TreeProtectedFormat" xml:space="preserve">
+    <value>{0} işlem ağacı sonlandırılamıyor: {1} korumalı.</value>
+  </data>
   <data name="Provider_TopLevelTitle" xml:space="preserve">
     <value>SysPulse – En çok kaynak kullanan işlemler</value>
   </data>
