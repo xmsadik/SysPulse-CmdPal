@@ -13,6 +13,7 @@ using SysPulse.Core.Processes;
 using SysPulse.Core.Settings;
 using SysPulse.Dock;
 using SysPulse.Pages;
+using SysPulse.Settings;
 
 namespace SysPulse;
 
@@ -22,7 +23,7 @@ public partial class SysPulseCommandsProvider : CommandProvider
     private readonly ICommandItem[] _dockBands;
 
     private readonly TopProcessesPage _topProcessesPage;
-    private readonly SysPulseOptions _options;
+    private readonly SysPulseSettingsManager _settingsManager;
     private readonly SystemSampler _sampler;
     private readonly ProcessSampler _processSampler;
     private readonly HealthMonitor _healthMonitor;
@@ -30,8 +31,16 @@ public partial class SysPulseCommandsProvider : CommandProvider
     private readonly StatusDockItem _statusItem;
     private readonly OnLoadDockBandItem _dockBandItem;
     private readonly MonitorLease _lease = new();
+    private readonly Lock _lastSampleLock = new();
 
+    // Published from the monitor loop's background thread (OnSampled) and read from whatever
+    // thread raises Settings.SettingsChanged (task requirement 3); a plain volatile reference
+    // assignment is enough for SysPulseOptions since it's an immutable record, but the two
+    // "last sample" fields below must be updated together, hence the explicit lock.
+    private volatile SysPulseOptions _options;
     private ProtectedProcessList _protectedProcessList;
+    private HealthEvaluation? _lastEvaluation;
+    private SystemSnapshot? _lastSnapshot;
     private bool _disposed;
 
     public SysPulseCommandsProvider()
@@ -40,8 +49,10 @@ public partial class SysPulseCommandsProvider : CommandProvider
         DisplayName = "SysPulse";
         Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
 
-        // Settings page comes later; defaults for now, per task instructions.
-        _options = new SysPulseOptions();
+        _settingsManager = new SysPulseSettingsManager();
+        _options = _settingsManager.ToOptions();
+        Settings = _settingsManager.Settings;
+
         _sampler = new SystemSampler();
         _processSampler = new ProcessSampler();
         _protectedProcessList = ProtectedProcessList.Create(_options, Environment.ProcessId);
@@ -54,7 +65,9 @@ public partial class SysPulseCommandsProvider : CommandProvider
         // reuse stable instances, never rebuild the band/page item arrays on each tick. The same
         // page instance is used both as the top-level command and as the dock band's click
         // target (task requirement 4), and its Id is non-empty (set in its own constructor),
-        // satisfying the dock band Command.Id requirement (spec §3).
+        // satisfying the dock band Command.Id requirement (spec §3). The options accessor reads
+        // the live _options field on every call, so every consumer (TopProcessesPage,
+        // ProcessListItem, KillProcessCommand) observes settings changes without a stale copy.
         _topProcessesPage = new TopProcessesPage(
             _processSampler,
             _healthMonitor,
@@ -64,8 +77,17 @@ public partial class SysPulseCommandsProvider : CommandProvider
             OnBandLoaded,
             OnBandUnloaded);
 
+        // Settings reachability (task requirement 3): mirrors the built-in TimeDate/Performance
+        // Monitor extensions, which expose the auto-generated settings card both via the
+        // provider's `Settings` property (assigned above -- the host's own "Extension settings"
+        // surface, e.g. the CmdPal Extensions settings page) *and* as a context-menu entry on a
+        // top-level command, since nothing in the installed SDK adds one automatically.
         _commands = [
-            new CommandItem(_topProcessesPage) { Title = "SysPulse – Top processes" },
+            new CommandItem(_topProcessesPage)
+            {
+                Title = "SysPulse – Top processes",
+                MoreCommands = [new CommandContextItem(_settingsManager.Settings.SettingsPage)],
+            },
         ];
 
         _statusItem = new StatusDockItem(_topProcessesPage);
@@ -80,6 +102,8 @@ public partial class SysPulseCommandsProvider : CommandProvider
             OnBandUnloaded);
 
         _dockBands = [_dockBandItem];
+
+        _settingsManager.Settings.SettingsChanged += OnSettingsChanged;
     }
 
     public override ICommandItem[] TopLevelCommands()
@@ -91,9 +115,8 @@ public partial class SysPulseCommandsProvider : CommandProvider
 
     /// <summary>
     /// Rebuilds <see cref="_protectedProcessList"/> from the current <see cref="_options"/> (task
-    /// requirement 3). Not yet called anywhere -- the settings page (spec §6) will call this after
-    /// applying a new <see cref="SysPulseOptions.ProtectedProcesses"/> value; until then the list
-    /// only reflects the built-ins plus SysPulse's own process id.
+    /// requirement 3). Called from <see cref="OnSettingsChanged"/> whenever the user edits
+    /// <see cref="SysPulseOptions.ProtectedProcesses"/> (or any other setting).
     /// </summary>
     internal void RebuildProtectedProcessList()
     {
@@ -102,6 +125,12 @@ public partial class SysPulseCommandsProvider : CommandProvider
 
     private void OnSampled(HealthEvaluation evaluation, SystemSnapshot snapshot)
     {
+        lock (_lastSampleLock)
+        {
+            _lastEvaluation = evaluation;
+            _lastSnapshot = snapshot;
+        }
+
         try
         {
             _statusItem.Apply(evaluation, snapshot, _options);
@@ -115,6 +144,58 @@ public partial class SysPulseCommandsProvider : CommandProvider
     private void OnFaulted(Exception ex)
     {
         Debug.WriteLine($"SysPulse: monitor loop cycle faulted: {ex}");
+    }
+
+    /// <summary>
+    /// Reacts to any settings-card save (task requirement 3): rebuilds <see cref="_options"/> from
+    /// the settings manager (parsing/clamping happens in <see cref="SysPulseSettingsManager.ToOptions"/>),
+    /// publishes it via the volatile <see cref="_options"/> field so every accessor-based consumer
+    /// (TopProcessesPage, ProcessListItem, KillProcessCommand) picks it up on its next read,
+    /// pushes it into the running <see cref="MonitorLoop"/>, rebuilds the protected-process list,
+    /// and immediately re-renders the dock label from the last known sample -- so a toggle like
+    /// <see cref="SysPulseOptions.CompactLabel"/> takes effect without waiting for the next tick.
+    /// </summary>
+    private void OnSettingsChanged(object sender, Microsoft.CommandPalette.Extensions.Toolkit.Settings settings)
+    {
+        try
+        {
+            SysPulseOptions newOptions = _settingsManager.ToOptions();
+            _options = newOptions;
+            _monitorLoop.UpdateOptions(newOptions);
+            RebuildProtectedProcessList();
+            ReapplyStatusLabel(newOptions);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"SysPulse: failed to apply changed settings: {ex}");
+        }
+    }
+
+    private void ReapplyStatusLabel(SysPulseOptions options)
+    {
+        HealthEvaluation? evaluation;
+        SystemSnapshot? snapshot;
+        lock (_lastSampleLock)
+        {
+            evaluation = _lastEvaluation;
+            snapshot = _lastSnapshot;
+        }
+
+        if (evaluation is null || snapshot is null)
+        {
+            // No sample yet (band never ticked, e.g. it isn't on screen) -- OnSampled will apply
+            // the current options on the first tick once the loop is running.
+            return;
+        }
+
+        try
+        {
+            _statusItem.Apply(evaluation.Value, snapshot.Value, options);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"SysPulse: StatusDockItem.Apply threw during settings reapply: {ex}");
+        }
     }
 
     private void OnBandLoaded()
@@ -166,6 +247,7 @@ public partial class SysPulseCommandsProvider : CommandProvider
 
         _disposed = true;
 
+        _settingsManager.Settings.SettingsChanged -= OnSettingsChanged;
         _monitorLoop.Sampled -= OnSampled;
         _monitorLoop.Faulted -= OnFaulted;
 

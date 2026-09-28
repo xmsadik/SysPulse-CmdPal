@@ -55,8 +55,8 @@ Kaynak: `SysPulse-CmdPal-Dock-Extension-Spec.md` (tek doğruluk kaynağı; SDK i
 - [x] E2. `KillProcessCommand` (PID+CreateTime kimlik kontrolü, `ConfirmKill`, `KillProcessTree`, `Win32Exception(5)` → "yönetici yetkisiyle çalışan süreç sonlandırılamaz" mesajı, sonrası refresh — CPU% bir sonraki örnekte oturur) → elevated süreçle manuel test → commit
 
 ### Faz F — Ayarlar sayfası
-- [ ] F1. `SysPulseSettings` (toolkit `JsonSettingsManager`) → `SysPulseOptions`'a map
-- [ ] F2. Settings-changed → monitor yeniden yapılandır (restart'sız) → `CompactLabel` doğrula → commit
+- [x] F1. `SysPulseSettingsManager` (toolkit `JsonSettingsManager`, `Settings\SysPulseSettingsManager.cs`) → 13 anahtar (`TextSetting`/`ToggleSetting`) → `ToOptions()` ile `SysPulseOptions`'a map (parse: `SysPulse.Core.Settings.SettingParsers.ParseNumber`, invariant + current culture, sonra `.Normalize()`; clamp değiştirdiyse `TextSetting.Value`'ya geri yaz)
+- [x] F2. Settings-changed → `_options` (volatile), `_monitorLoop.UpdateOptions`, `RebuildProtectedProcessList`, son `(evaluation, snapshot)`'tan `StatusDockItem.Apply` anında yeniden çağrılır (restart'sız); `CompactLabel`/`ShowToast`/`ConfirmKill`/`KillProcessTree` hepsi accessor üzerinden okunuyor. Görsel doğrulama (CmdPal'de ayar sayfasını açıp değiştirme) **insan tarafından yapılmalı** — bkz. görev raporu. Build 0 warning, `dotnet test` 123/123 yeşil; commit yapılmadı (görev talimatı).
 
 ### Faz G — Bildirim
 - [ ] G1. `AlertNotifier` (ToastNotificationManager, epizot başına 1 toast, `ShowToast`, hata → logla-devam) → commit
