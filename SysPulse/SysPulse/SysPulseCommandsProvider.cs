@@ -12,6 +12,7 @@ using SysPulse.Core.Monitoring;
 using SysPulse.Core.Processes;
 using SysPulse.Core.Settings;
 using SysPulse.Dock;
+using SysPulse.Notifications;
 using SysPulse.Pages;
 using SysPulse.Settings;
 
@@ -28,6 +29,7 @@ public partial class SysPulseCommandsProvider : CommandProvider
     private readonly ProcessSampler _processSampler;
     private readonly HealthMonitor _healthMonitor;
     private readonly MonitorLoop _monitorLoop;
+    private readonly AlertNotifier _alertNotifier;
     private readonly StatusDockItem _statusItem;
     private readonly OnLoadDockBandItem _dockBandItem;
     private readonly MonitorLease _lease = new();
@@ -57,7 +59,8 @@ public partial class SysPulseCommandsProvider : CommandProvider
         _processSampler = new ProcessSampler();
         _protectedProcessList = ProtectedProcessList.Create(_options, Environment.ProcessId);
         _healthMonitor = new HealthMonitor(_options);
-        _monitorLoop = new MonitorLoop(_sampler, _healthMonitor, _options);
+        _alertNotifier = new AlertNotifier(() => _options);
+        _monitorLoop = new MonitorLoop(_sampler, _healthMonitor, _options, notifier: _alertNotifier);
         _monitorLoop.Sampled += OnSampled;
         _monitorLoop.Faulted += OnFaulted;
 
@@ -262,6 +265,15 @@ public partial class SysPulseCommandsProvider : CommandProvider
         catch (Exception ex)
         {
             Debug.WriteLine($"SysPulse: failed to dispose ProcessSampler: {ex}");
+        }
+
+        try
+        {
+            _alertNotifier.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"SysPulse: failed to dispose AlertNotifier: {ex}");
         }
 
         GC.SuppressFinalize(this);

@@ -77,6 +77,10 @@ public sealed partial class ProcessSampler : IProcessSampler, IDisposable
 
     private readonly TimeProvider _timeProvider;
     private readonly ProcessCpuTracker _cpuTracker = new();
+
+    // Serializes Sample() and Dispose(): the native buffer must never be freed (or regrown by a
+    // concurrent caller) while another thread is walking it.
+    private readonly Lock _gate = new();
     private nint _buffer;
     private int _bufferSize;
     private bool _disposed;
@@ -94,9 +98,18 @@ public sealed partial class ProcessSampler : IProcessSampler, IDisposable
     }
 
     /// <inheritdoc />
-    public unsafe IReadOnlyList<ProcessSample> Sample()
+    /// <remarks>Thread-safe: concurrent calls are serialized; after <see cref="Dispose"/> it throws <see cref="ObjectDisposedException"/>.</remarks>
+    public IReadOnlyList<ProcessSample> Sample()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            return SampleCore();
+        }
+    }
+
+    private unsafe List<ProcessSample> SampleCore()
+    {
 
         DateTimeOffset timestamp = _timeProvider.GetUtcNow();
         int usedLength = Query();
@@ -141,18 +154,22 @@ public sealed partial class ProcessSampler : IProcessSampler, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_disposed)
+        lock (_gate)
         {
-            return;
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (_buffer != 0)
+            {
+                Marshal.FreeHGlobal(_buffer);
+                _buffer = 0;
+            }
+
+            _disposed = true;
         }
 
-        if (_buffer != 0)
-        {
-            Marshal.FreeHGlobal(_buffer);
-            _buffer = 0;
-        }
-
-        _disposed = true;
         GC.SuppressFinalize(this);
     }
 
