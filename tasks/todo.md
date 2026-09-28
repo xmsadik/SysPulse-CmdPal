@@ -30,10 +30,10 @@ Kaynak: `SysPulse-CmdPal-Dock-Extension-Spec.md` (tek doğruluk kaynağı; SDK i
 
 ### Faz A — Araştırma & iskelet
 - [ ] A1. (Sonnet, read-only) PowerToys repo + yüklü NuGet: `NowDockBand`, Performance Monitor band, `WrappedDockItem`, `ICommandProvider3/4`, `JsonSettingsManager` + setting türleri, `CommandResult.Confirm`, `ToastStatusMessage`, `IconInfo(exePath)`, resx/resw → bulgular doğrudan `DECISIONS.md`'ye
-- [ ] A2. `git init` + `.gitignore` + boş `DECISIONS.md`
-- [ ] A3. **👤 Kullanıcı adımı:** CmdPal'de **"Create extension"** → `SysPulse` (bu klasöre). SDK sürümünü doğrula (≥ 0.9.260303001; muhtemelen zaten öyle)
-- [ ] A4. `SysPulse.Core` + `SysPulse.Tests` ekle, solution'a bağla
-- [ ] A5. Dev loop scripti `scripts/deploy.ps1`: çalışan SysPulse sürecini durdur → `dotnet build -p:Platform=x64` → `Add-AppxPackage -Register <out>\AppxManifest.xml` → CmdPal "Reload extensions". Extension'ın yüklendiğini doğrula → commit
+- [x] A2. `git init` + `.gitignore` + boş `DECISIONS.md`
+- [x] A3. **👤 Kullanıcı adımı:** CmdPal'de **"Create extension"** → `SysPulse` (bu klasöre). SDK sürümünü doğrula (≥ 0.9.260303001; muhtemelen zaten öyle)
+- [x] A4. `SysPulse.Core` + `SysPulse.Tests` ekle, solution'a bağla
+- [x] A5. Dev loop scripti `scripts/deploy.ps1`: çalışan SysPulse sürecini durdur → `dotnet build -p:Platform=x64` → `Add-AppxPackage -Register <out>\AppxManifest.xml` → CmdPal "Reload extensions". Extension'ın yüklendiğini doğrula → commit
 
 ### Faz B — Sistem örnekleme & canlı band
 - [ ] B1. `SystemSampler` (`GetSystemTimes` delta, `GlobalMemoryStatusEx`) + testler
