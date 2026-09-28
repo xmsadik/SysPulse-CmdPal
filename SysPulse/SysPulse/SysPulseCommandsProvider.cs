@@ -75,7 +75,8 @@ public partial class SysPulseCommandsProvider : CommandProvider
             () => _options,
             () => _protectedProcessList,
             OnBandLoaded,
-            OnBandUnloaded);
+            OnBandUnloaded,
+            _settingsManager.Settings.SettingsPage);
 
         // Settings reachability (task requirement 3): mirrors the built-in TimeDate/Performance
         // Monitor extensions, which expose the auto-generated settings card both via the

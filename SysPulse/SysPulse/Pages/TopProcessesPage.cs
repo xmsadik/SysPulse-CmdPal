@@ -73,7 +73,8 @@ internal sealed partial class TopProcessesPage : OnLoadDynamicListPage
         Func<SysPulseOptions> optionsAccessor,
         Func<ProtectedProcessList> protectedListAccessor,
         Action onLoaded,
-        Action onUnloaded)
+        Action onUnloaded,
+        ICommand settingsPage)
     {
         ArgumentNullException.ThrowIfNull(sampler);
         ArgumentNullException.ThrowIfNull(healthMonitor);
@@ -82,6 +83,7 @@ internal sealed partial class TopProcessesPage : OnLoadDynamicListPage
         ArgumentNullException.ThrowIfNull(protectedListAccessor);
         ArgumentNullException.ThrowIfNull(onLoaded);
         ArgumentNullException.ThrowIfNull(onUnloaded);
+        ArgumentNullException.ThrowIfNull(settingsPage);
 
         _sampler = sampler;
         _healthMonitor = healthMonitor;
@@ -105,12 +107,14 @@ internal sealed partial class TopProcessesPage : OnLoadDynamicListPage
         };
 
         var refreshCommand = new RefreshProcessesCommand(() => StartRefreshIfIdle());
-        var refreshContextItem = new CommandContextItem(refreshCommand);
+        // Shared trailing context items for every row: Refresh, and Settings (the flyout is the main
+        // entry point, so settings must be reachable from here, not only from the launcher command).
+        CommandContextItem[] sharedItems = [new CommandContextItem(refreshCommand), new CommandContextItem(settingsPage)];
 
         _slots = new ProcessListItem[SlotCount];
         for (int i = 0; i < SlotCount; i++)
         {
-            _slots[i] = new ProcessListItem(_optionsAccessor, () => StartRefreshIfIdle(), refreshContextItem);
+            _slots[i] = new ProcessListItem(_optionsAccessor, () => StartRefreshIfIdle(), sharedItems);
         }
 
         _slices = new IListItem[SlotCount + 1][];

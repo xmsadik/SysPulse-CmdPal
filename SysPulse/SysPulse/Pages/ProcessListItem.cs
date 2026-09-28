@@ -33,7 +33,7 @@ internal sealed partial class ProcessListItem : ListItem
     private readonly KillProcessCommand _killCommand;
     private readonly CopyTextCommand _copyPidCommand;
     private readonly CommandContextItem _copyPidContextItem;
-    private readonly CommandContextItem _refreshContextItem;
+    private readonly CommandContextItem[] _sharedTrailingItems;
 
     private ShowFileInFolderCommand? _openFileCommand;
     private CommandContextItem? _openFileContextItem;
@@ -48,21 +48,21 @@ internal sealed partial class ProcessListItem : ListItem
     /// </summary>
     /// <param name="optionsAccessor">Accessor for the current <see cref="SysPulse.Core.Settings.SysPulseOptions"/> (kill confirmation/tree, read at kill time).</param>
     /// <param name="requestRefresh">Callback to force an immediate Top-5 refresh (used after a kill).</param>
-    /// <param name="sharedRefreshContextItem">
-    /// The single <see cref="CommandContextItem"/> instance shared by every slot for the page-wide
-    /// "Refresh" action (spec §5.5) -- see <see cref="TopProcessesPage"/>.
+    /// <param name="sharedTrailingItems">
+    /// Context items shared by every slot and appended after the per-process ones (Refresh,
+    /// Settings) -- see <see cref="TopProcessesPage"/>.
     /// </param>
     public ProcessListItem(
         Func<SysPulseOptions> optionsAccessor,
         Action requestRefresh,
-        CommandContextItem sharedRefreshContextItem)
+        CommandContextItem[] sharedTrailingItems)
     {
-        ArgumentNullException.ThrowIfNull(sharedRefreshContextItem);
+        ArgumentNullException.ThrowIfNull(sharedTrailingItems);
 
         _killCommand = new KillProcessCommand(optionsAccessor, requestRefresh);
         _copyPidCommand = new CopyTextCommand(string.Empty) { Name = "Copy PID" };
         _copyPidContextItem = new CommandContextItem(_copyPidCommand);
-        _refreshContextItem = sharedRefreshContextItem;
+        _sharedTrailingItems = sharedTrailingItems;
 
         Icon = ProcessIconCache.Fallback;
     }
@@ -196,7 +196,7 @@ internal sealed partial class ProcessListItem : ListItem
 
     private void UpdateMoreCommands(bool isProtected)
     {
-        var items = new List<CommandContextItem>(3);
+        var items = new List<CommandContextItem>(4);
         if (_openFileContextItem is not null)
         {
             items.Add(_openFileContextItem);
@@ -208,7 +208,7 @@ internal sealed partial class ProcessListItem : ListItem
             items.Add(_copyPidContextItem);
         }
 
-        items.Add(_refreshContextItem);
+        items.AddRange(_sharedTrailingItems);
 
         try
         {
