@@ -8,7 +8,7 @@ this document).
 ## 0. Dev loop
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File C:\Users\tr11677\system-monitor-cmdpal\scripts\deploy.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy.ps1
 ```
 
 This stops any running `SysPulse.exe`, builds the MSIX project (`x64`, `Debug` by default), and
@@ -34,7 +34,7 @@ it) targets exclusively.
 ### Unit tests
 
 ```powershell
-dotnet test C:\Users\tr11677\system-monitor-cmdpal\SysPulse\SysPulse.Tests\SysPulse.Tests.csproj -p:Platform=x64
+dotnet test SysPulse\SysPulse.Tests\SysPulse.Tests.csproj -p:Platform=x64
 ```
 
 Expect **0 failed**, **0 warnings** during the build step. As of this pass: 140 tests (state
