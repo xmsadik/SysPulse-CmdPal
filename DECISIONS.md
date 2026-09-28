@@ -25,6 +25,7 @@ SDK deviations, trade-offs and measurements for SysPulse. Research details and s
 
 ## D7 — Dock label width
 - Use the SDK's `DockLabelWidth` / `SetDockLabelReservations` (as Performance Monitor does) to prevent width jitter. `CompactLabel` setting is kept as the spec requires, for narrow/vertical docks.
+- **Verified unavailable in the installed package (2026-09-28):** `Microsoft.CommandPalette.Extensions.Toolkit.dll` from NuGet `Microsoft.CommandPalette.Extensions` 0.12.260812002 has no `DockLabelWidth`/`DockLabelWidthExtensions`/`DockLabelPresentationExtensions` types at all (confirmed via `System.Reflection.PortableExecutable.PEReader` type-table dump of the DLL — zero matches for `DockLabel*`, vs. `WrappedDockItem`/`IExtendedAttributesProvider` which are present). The PowerToys `main`-branch source docs/sdk-research.md cites for this API post-dates this NuGet release. `StatusDockItem` therefore does **not** call these APIs; `Dock\StatusDockItem.cs` documents this in a code comment. Same finding applies to `EventHelpers` (used by upstream `OnLoadDynamicListPage.RaiseItemsChanged`): absent from the installed Toolkit DLL, so the ported `SysPulse.Dock.OnLoadDynamicListPage` invokes its internal event delegate directly instead.
 
 ## D8 — Band shape
 - Single status item whose `Command` is `TopProcessesPage` (click → flyout), hosted by the ported `OnLoadDockBandItem` instead of `WrappedDockItem` (needed for D3).

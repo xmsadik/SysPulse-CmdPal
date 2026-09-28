@@ -11,6 +11,9 @@ internal sealed partial class SysPulsePage : ListPage
 {
     public SysPulsePage()
     {
+        // Non-empty Id required: this page is also used as the dock band item's Command,
+        // and CmdPal ignores dock band items whose Command.Id is empty.
+        Id = "com.syspulse.statuspage";
         Icon = IconHelpers.FromRelativePath("Assets\\StoreLogo.png");
         Title = "SysPulse";
         Name = "Open";
