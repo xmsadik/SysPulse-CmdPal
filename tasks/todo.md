@@ -46,12 +46,12 @@ Kaynak: `SysPulse-CmdPal-Dock-Extension-Spec.md` (tek doğruluk kaynağı; SDK i
 - [ ] C3. ALERT görselleri: `warning-yellow.svg/png` (#FFC400), `⚠` başlık, subtitle; VERIFYING'de UI değişmez → görsel doğrulama → commit
 
 ### Faz D — Süreçler & Top-5
-- [ ] D1. `ProcessSampler` (NtQuerySystemInformation, (PID,CreateTime) cache, delta CPU, ilk gözlem = 0 %, prune) + test 6
-- [ ] D2. Ranking (Cpu / Memory / composite) + test 7
+- [x] D1. `ProcessSampler` (NtQuerySystemInformation, (PID,CreateTime) cache, delta CPU, ilk gözlem = 0 %, prune) + test 6
+- [x] D2. Ranking (Cpu / Memory / composite) + test 7
 - [ ] D3. `TopProcessesPage` + 5 slot, subtitle formatı, ikon, `Refresh`, non-blocking `GetItems()` + 2 sn tazelik kuralı, context menü (Open file location, Copy PID); unit test: `GetItems()` her çağrıda aynı referansları döner → commit
 
 ### Faz E — Kill
-- [ ] E1. `ProtectedProcessList` (tek yer; spec listesi + `Microsoft.CmdPal.UI`, `PowerToys`, `explorer`, `Environment.ProcessId`; case-insensitive, `.exe` opsiyonel; ayardan ek) + test 8
+- [x] E1. `ProtectedProcessList` (tek yer; spec listesi + `Microsoft.CmdPal.UI`, `PowerToys`, `explorer`, `Environment.ProcessId`; case-insensitive, `.exe` opsiyonel; ayardan ek) + test 8
 - [ ] E2. `KillProcessCommand` (PID+CreateTime kimlik kontrolü, `ConfirmKill`, `KillProcessTree`, `Win32Exception(5)` → "yönetici yetkisiyle çalışan süreç sonlandırılamaz" mesajı, sonrası refresh — CPU% bir sonraki örnekte oturur) → elevated süreçle manuel test → commit
 
 ### Faz F — Ayarlar sayfası
