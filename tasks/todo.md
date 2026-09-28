@@ -59,14 +59,14 @@ Kaynak: `SysPulse-CmdPal-Dock-Extension-Spec.md` (tek doğruluk kaynağı; SDK i
 - [x] F2. Settings-changed → `_options` (volatile), `_monitorLoop.UpdateOptions`, `RebuildProtectedProcessList`, son `(evaluation, snapshot)`'tan `StatusDockItem.Apply` anında yeniden çağrılır (restart'sız); `CompactLabel`/`ShowToast`/`ConfirmKill`/`KillProcessTree` hepsi accessor üzerinden okunuyor. Görsel doğrulama (CmdPal'de ayar sayfasını açıp değiştirme) **insan tarafından yapılmalı** — bkz. görev raporu. Build 0 warning, `dotnet test` 123/123 yeşil; commit yapılmadı (görev talimatı).
 
 ### Faz G — Bildirim
-- [ ] G1. `AlertNotifier` (ToastNotificationManager, epizot başına 1 toast, `ShowToast`, hata → logla-devam) → commit
+- [x] G1. `AlertNotifier` (ToastNotificationManager, epizot başına 1 toast, `ShowToast`, hata → logla-devam) → commit
 
 ### Faz H — Cila & ölçüm
 - [ ] H1. Lokalizasyon en-US + tr-TR
 - [ ] H2. Rolling file log (LocalState, ~1 MB, debug kapalı)
 - [ ] H3. `TESTING.md` (CPU/mem stres scriptleri, dikey Dock, label-off, elevated kill)
 - [ ] H4. Overhead ölçümü (10 dk, <%1 CPU, <60 MB) + leak testi (30 dk @ 2 sn, private bytes düz) → `DECISIONS.md`
-- [ ] H5. ARM64 derleme kontrolü
+- [x] H5. ARM64 derleme kontrolü
 - [ ] H6. Son review (bug-expert / Fable diff review) → commit
 
 ## 3. Riskler
