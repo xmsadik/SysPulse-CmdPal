@@ -1,5 +1,5 @@
 ## Görev dosyaları
-- 2026-10-09 · Kurulabilir sürüm ve uygulama ikonu · BLOKE · [dosya](2026-10-09-kurulabilir-surum.md)
+- 2026-10-09 · Kurulabilir sürüm ve uygulama ikonu · TAMAMLANDI · [dosya](2026-10-09-kurulabilir-surum.md)
 
 # SysPulse — Uygulama Planı (v2 — Fable critique sonrası)
 
