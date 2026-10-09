@@ -10,14 +10,13 @@
 
   <Identity
     Name="SysPulse"
-    Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
-    Version="0.0.1.0" />
-  <!-- When you're ready to publish your extension, you'll need to change the
-       Publisher= to match your own identity -->
+    Publisher="CN=Mustafa Sadik"
+    Version="1.0.0.0" />
+  <!-- Publisher must match the subject of the signing certificate (scripts/package.ps1). -->
 
   <Properties>
     <DisplayName>SysPulse</DisplayName>
-    <PublisherDisplayName>A Lone Developer</PublisherDisplayName>
+    <PublisherDisplayName>Mustafa Sadik</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -36,7 +35,7 @@
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
         DisplayName="SysPulse"
-        Description="SysPulse"
+        Description="CPU and memory monitor for the Command Palette Dock"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
@@ -56,7 +55,7 @@
             Id="ID"
             PublicFolder="Public"
             DisplayName="SysPulse"
-            Description="SysPulse">
+            Description="CPU and memory monitor for the Command Palette Dock">
             <uap3:Properties>
               <CmdPalProvider>
                 <Activation>

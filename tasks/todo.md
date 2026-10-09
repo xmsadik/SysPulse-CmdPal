@@ -1,3 +1,6 @@
+## Görev dosyaları
+- 2026-10-09 · Kurulabilir sürüm ve uygulama ikonu · BLOKE · [dosya](2026-10-09-kurulabilir-surum.md)
+
 # SysPulse — Uygulama Planı (v2 — Fable critique sonrası)
 
 Kaynak: `SysPulse-CmdPal-Dock-Extension-Spec.md` (tek doğruluk kaynağı; SDK ile çelişirse SDK kazanır → `DECISIONS.md`).

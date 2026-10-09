@@ -16,15 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Assets\SplashScreen.scale-200.png" />
-    <Content Include="Assets\LockScreenLogo.scale-200.png" />
-    <Content Include="Assets\Square150x150Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
-    <Content Include="Assets\StoreLogo.png" />
-    <Content Include="Assets\Wide310x150Logo.scale-200.png" />
-    <Content Include="Assets\pulse.svg" />
-    <Content Include="Assets\warning-yellow.svg" />
+    <!-- App logo set is rendered from docs/app-logo.svg (all scale/targetsize variants). -->
+    <Content Include="Assets\**" />
     <!-- CLI dev loop registers the build output folder directly (scripts/deploy.ps1), so assets must be copied there. -->
     <Content Update="Assets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

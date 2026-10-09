@@ -9,3 +9,4 @@ BundleArtifacts/
 *.appx
 TestResults/
 measurements/
+dist/
