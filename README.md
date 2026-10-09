@@ -30,5 +30,6 @@ To uninstall: `Get-AppxPackage SysPulse | Remove-AppxPackage`.
 
 - `scripts/deploy.ps1`: dev loop, which builds and registers the unpackaged layout (requires Developer Mode).
 - `scripts/package.ps1`: builds signed x64 + ARM64 MSIX packages into `dist/`.
+- `scripts/backup-signing-cert.ps1`: exports the signing certificate to a password-protected `.pfx` backup.
 
 See `TESTING.md` for the manual test checklist and `DECISIONS.md` for design notes.
